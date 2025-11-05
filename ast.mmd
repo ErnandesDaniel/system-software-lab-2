@@ -126,5 +126,27 @@ N62["dec: 7"]
 N61 --> N62
 N63[";"]
 N54 --> N63
-N64["end"]
+N64["statement"]
 N1 --> N64
+N65["expression_statement"]
+N64 --> N65
+N66["expr"]
+N65 --> N66
+N67["binary_expr"]
+N66 --> N67
+N68["expr"]
+N67 --> N68
+N69["identifier: i"]
+N68 --> N69
+N70["="]
+N67 --> N70
+N71["expr"]
+N67 --> N71
+N72["literal"]
+N71 --> N72
+N73["dec: 5"]
+N72 --> N73
+N74[";"]
+N65 --> N74
+N75["end"]
+N1 --> N75

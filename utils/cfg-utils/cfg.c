@@ -396,30 +396,39 @@ CFGNode* cfg_process_statements(TSNode node, const char* source, CFGGraph* graph
         return block;
     } else if (strcmp(type, "if_statement") == 0) {
         // Handle if statement
-        CFGNode* condition_node = cfg_create_node(CFG_NODE_CONDITION, "if b<5", (void*)&node);
+        // Extract condition text for label
+        TSNode condition = ts_node_child_by_field_name(node, "condition", strlen("condition"));
+        uint32_t cond_start = ts_node_start_byte(condition);
+        uint32_t cond_end = ts_node_end_byte(condition);
+        size_t cond_len = cond_end - cond_start;
+        char* cond_text = malloc(cond_len + 1);
+        if (cond_text) {
+            memcpy(cond_text, source + cond_start, cond_len);
+            cond_text[cond_len] = '\0';
+        }
+
+        CFGNode* condition_node = cfg_create_node(CFG_NODE_CONDITION, cond_text ? cond_text : "condition", (void*)&node);
         cfg_add_node(graph, condition_node);
 
         CFGEdge* cond_edge = cfg_create_edge(prev_node, condition_node, CFG_EDGE_UNCONDITIONAL, NULL);
         cfg_add_edge(graph, cond_edge);
 
-        // Find then and else branches
-        uint32_t child_count = ts_node_child_count(node);
+        // Find then and else branches using field names
         CFGNode* then_end = condition_node;
         CFGNode* else_end = condition_node;
 
-        for (uint32_t i = 0; i < child_count; i++) {
-            TSNode child = ts_node_child(node, i);
-            const char* child_type = ts_node_type(child);
+        TSNode consequence = ts_node_child_by_field_name(node, "consequence", strlen("consequence"));
+        if (!ts_node_is_null(consequence)) {
+            then_end = cfg_process_statements(consequence, source, graph, condition_node);
+        }
 
-            if (strcmp(child_type, "statement") == 0 && i > 2) { // then branch
-                then_end = cfg_process_statements(child, source, graph, condition_node);
-            } else if (strcmp(child_type, "statement") == 0 && i > 4) { // else branch
-                else_end = cfg_process_statements(child, source, graph, condition_node);
-            }
+        TSNode alternative = ts_node_child_by_field_name(node, "alternative", strlen("alternative"));
+        if (!ts_node_is_null(alternative)) {
+            else_end = cfg_process_statements(alternative, source, graph, condition_node);
         }
 
         // Create merge point
-        CFGNode* merge_node = cfg_create_node(CFG_NODE_BASIC_BLOCK, "endif", NULL);
+        CFGNode* merge_node = cfg_create_node(CFG_NODE_BASIC_BLOCK, "end if", NULL);
         cfg_add_node(graph, merge_node);
 
         // Connect branches to merge
@@ -432,6 +441,7 @@ CFGNode* cfg_process_statements(TSNode node, const char* source, CFGGraph* graph
             cfg_add_edge(graph, else_merge_edge);
         }
 
+        free(cond_text);
         return merge_node;
     }
 
