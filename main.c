@@ -8,6 +8,7 @@
 #include "src/tree_sitter/parser.h"
 #include "utils/common-utils/common-utils.h"
 #include "utils/mermaid-utils/mermaid-utils.h"
+#include "utils/cfg-utils/cfg.h"
 
 // Подключаем твою грамматику
 TSLanguage *tree_sitter_mylang(); // Объявляем функцию из parser.c
@@ -112,20 +113,25 @@ int main(int argc, char *argv[]) {
                         memcpy(func_name, content + start, len);
                         func_name[len] = '\0';
 
-                        // Генерируем Mermaid для этой функции
-                        char* func_mermaid = generate_mermaid(child, content);
-                        if (func_mermaid) {
-                            // Создаем файл для функции
-                            char filepath[256];
-                            sprintf(filepath, "%s\\%s.mmd", argv[3], func_name);
-                            FILE* func_file = fopen(filepath, "w");
-                            if (func_file) {
-                                fputs(func_mermaid, func_file);
-                                fclose(func_file);
-                            } else {
-                                fprintf(stderr, "Failed to create file for function %s\n", func_name);
+                        // Строим CFG для этой функции
+                        CFGGraph* func_cfg = cfg_build_from_ast(child, content);
+                        if (func_cfg) {
+                            // Генерируем Mermaid диаграмму из CFG
+                            char* func_mermaid = cfg_generate_mermaid(func_cfg);
+                            if (func_mermaid) {
+                                // Создаем файл для функции
+                                char filepath[256];
+                                sprintf(filepath, "%s\\%s.mmd", argv[3], func_name);
+                                FILE* func_file = fopen(filepath, "w");
+                                if (func_file) {
+                                    fputs(func_mermaid, func_file);
+                                    fclose(func_file);
+                                } else {
+                                    fprintf(stderr, "Failed to create file for function %s\n", func_name);
+                                }
+                                free(func_mermaid);
                             }
-                            free(func_mermaid);
+                            cfg_destroy_graph(func_cfg);
                         }
                         free(func_name);
                     }

@@ -1,0 +1,16 @@
+graph TD;
+N0["ENTRY: ENTRY"]
+N1["EXIT: EXIT"]
+N2["BASIC_BLOCK: a=5"]
+N3["BASIC_BLOCK: b=6"]
+N4["CONDITION: if b<5"]
+N5["BASIC_BLOCK: i=5"]
+N6["BASIC_BLOCK: i=7"]
+N7["BASIC_BLOCK: endif"]
+N0 --> N2
+N2 --> N3
+N3 --> N4
+N4 --> N5
+N4 --> N6
+N6 --> N7
+N7 --> N1
