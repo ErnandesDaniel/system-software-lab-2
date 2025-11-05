@@ -1,0 +1,106 @@
+graph TD;
+N0["source_item"]
+N1["def"]
+N0 --> N1
+N2["func_signature"]
+N0 --> N2
+N3["identifier: main"]
+N2 --> N3
+N4["("]
+N2 --> N4
+N5[")"]
+N2 --> N5
+N6["statement"]
+N0 --> N6
+N7["expression_statement"]
+N6 --> N7
+N8["expr"]
+N7 --> N8
+N9["binary_expr"]
+N8 --> N9
+N10["expr"]
+N9 --> N10
+N11["identifier: i"]
+N10 --> N11
+N12["="]
+N9 --> N12
+N13["expr"]
+N9 --> N13
+N14["call_expr"]
+N13 --> N14
+N15["expr"]
+N14 --> N15
+N16["binary_expr"]
+N15 --> N16
+N17["expr"]
+N16 --> N17
+N18["binary_expr"]
+N17 --> N18
+N19["expr"]
+N18 --> N19
+N20["binary_expr"]
+N19 --> N20
+N21["expr"]
+N20 --> N21
+N22["literal"]
+N21 --> N22
+N23["dec: 2"]
+N22 --> N23
+N24["*"]
+N20 --> N24
+N25["expr"]
+N20 --> N25
+N26["literal"]
+N25 --> N26
+N27["dec: 5"]
+N26 --> N27
+N28["+"]
+N18 --> N28
+N29["expr"]
+N18 --> N29
+N30["binary_expr"]
+N29 --> N30
+N31["expr"]
+N30 --> N31
+N32["literal"]
+N31 --> N32
+N33["dec: 3"]
+N32 --> N33
+N34["*"]
+N30 --> N34
+N35["expr"]
+N30 --> N35
+N36["literal"]
+N35 --> N36
+N37["dec: 4"]
+N36 --> N37
+N38["+"]
+N16 --> N38
+N39["expr"]
+N16 --> N39
+N40["identifier: foo"]
+N39 --> N40
+N41["("]
+N14 --> N41
+N42["list_expr"]
+N14 --> N42
+N43["expr"]
+N42 --> N43
+N44["literal"]
+N43 --> N44
+N45["dec: 3"]
+N44 --> N45
+N46[","]
+N42 --> N46
+N47["expr"]
+N42 --> N47
+N48["literal"]
+N47 --> N48
+N49["dec: 4"]
+N48 --> N49
+N50[")"]
+N14 --> N50
+N51[";"]
+N7 --> N51
+N52["end"]
+N0 --> N52

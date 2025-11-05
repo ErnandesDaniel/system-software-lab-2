@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
                         if (func_mermaid) {
                             // Создаем файл для функции
                             char filepath[256];
-                            sprintf(filepath, "%s/%s.mmd", argv[3], func_name);
+                            sprintf(filepath, "%s\\%s.mmd", argv[3], func_name);
                             FILE* func_file = fopen(filepath, "w");
                             if (func_file) {
                                 fputs(func_mermaid, func_file);
