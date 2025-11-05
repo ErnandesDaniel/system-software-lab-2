@@ -1,6 +1,12 @@
 
 
-def main ()
+def main1 ()
+
+a=1;
+
+end
+
+def main2 ()
 
 a=1;
 

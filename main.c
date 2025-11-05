@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "lib/tree-sitter/lib/include/tree_sitter/api.h"
 #include "src/tree_sitter/parser.h"
@@ -105,9 +107,20 @@ char* generate_mermaid(TSNode node, const char* source) {
     return diagram;
 }
 
+// Функция для генерации Mermaid диаграммы для функции
+char* generate_mermaid_for_function(TSNode func_node, const char* source) {
+    char* diagram = NULL;
+    append_to_diagram(&diagram, "graph TD;\n");
+
+    int id_counter = 0;
+    generate_mermaid_node(func_node, source, &diagram, &id_counter, NULL);
+
+    return diagram;
+}
+
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <input_file> <output_md>\n", argv[0]);
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <input_file> <output_md> <cfg_dir>\n", argv[0]);
         return 1;
     }
 
@@ -125,7 +138,7 @@ int main(int argc, char *argv[]) {
     TSTree *tree = ts_parser_parse_string(parser, NULL, content, file_size);
     TSNode root_node = ts_tree_root_node(tree);
 
-        // Генерируем Mermaid диаграмму
+    // Генерируем Mermaid диаграмму для всего дерева
     char *mermaid_str = generate_mermaid(root_node, content);
 
     if (!mermaid_str) {
@@ -136,8 +149,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Создаем MD файл с диаграммой
-        FILE *out_md = fopen(argv[2], "w");
+    // Создаем MD файл с общей диаграммой
+    FILE *out_md = fopen(argv[2], "w");
     if (!out_md) {
         perror("Failed to create MD output file");
         free(mermaid_str);
@@ -148,9 +161,67 @@ int main(int argc, char *argv[]) {
     }
 
     fputs(mermaid_str, out_md);
-
     fclose(out_md);
     free(mermaid_str);
+
+    // Создаем директорию для функций
+    mkdir(argv[3]);
+
+    // Обрабатываем дочерние узлы корневого узла
+    uint32_t child_count = ts_node_child_count(root_node);
+    for (uint32_t i = 0; i < child_count; i++) {
+        TSNode child = ts_node_child(root_node, i);
+        const char* child_type = ts_node_type(child);
+
+        if (strcmp(child_type, "source_item") == 0) {
+            // Находим функцию в source_item
+            uint32_t func_child_count = ts_node_child_count(child);
+            for (uint32_t j = 0; j < func_child_count; j++) {
+                TSNode func_child = ts_node_child(child, j);
+                const char* func_child_type = ts_node_type(func_child);
+
+                if (strcmp(func_child_type, "func_signature") == 0) {
+                    // Находим имя функции
+                    uint32_t sig_child_count = ts_node_child_count(func_child);
+                    for (uint32_t k = 0; k < sig_child_count; k++) {
+                        TSNode sig_child = ts_node_child(func_child, k);
+                        const char* sig_child_type = ts_node_type(sig_child);
+
+                        if (strcmp(sig_child_type, "identifier") == 0) {
+                            // Извлекаем имя функции
+                            uint32_t start = ts_node_start_byte(sig_child);
+                            uint32_t end = ts_node_end_byte(sig_child);
+                            uint32_t len = end - start;
+                            char* func_name = malloc(len + 1);
+                            memcpy(func_name, content + start, len);
+                            func_name[len] = '\0';
+
+                            // Генерируем Mermaid диаграмму для функции
+                            char *func_mermaid_str = generate_mermaid_for_function(child, content);
+
+                            if (func_mermaid_str) {
+                                // Создаем файл с именем функции
+                                char filename[256];
+                                sprintf(filename, "%s/%s.mmd", argv[3], func_name);
+                                FILE *func_out_md = fopen(filename, "w");
+                                if (func_out_md) {
+                                    fputs(func_mermaid_str, func_out_md);
+                                    fclose(func_out_md);
+                                } else {
+                                    perror("Failed to create output file");
+                                }
+                                free(func_mermaid_str);
+                            }
+
+                            free(func_name);
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
 
     ts_tree_delete(tree);
     ts_parser_delete(parser);

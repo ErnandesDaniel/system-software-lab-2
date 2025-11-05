@@ -8,7 +8,7 @@ N3["func_signature"]
 N1 --> N3
 N4["identifier"]
 N3 --> N4
-N5["main"]
+N5["main1"]
 N4 --> N5
 N6["("]
 N3 --> N6
@@ -42,3 +42,45 @@ N20[";"]
 N9 --> N20
 N21["end"]
 N1 --> N21
+N22["source_item"]
+N0 --> N22
+N23["def"]
+N22 --> N23
+N24["func_signature"]
+N22 --> N24
+N25["identifier"]
+N24 --> N25
+N26["main2"]
+N25 --> N26
+N27["("]
+N24 --> N27
+N28[")"]
+N24 --> N28
+N29["statement"]
+N22 --> N29
+N30["expression_statement"]
+N29 --> N30
+N31["expr"]
+N30 --> N31
+N32["binary_expr"]
+N31 --> N32
+N33["expr"]
+N32 --> N33
+N34["identifier"]
+N33 --> N34
+N35["a"]
+N34 --> N35
+N36["="]
+N32 --> N36
+N37["expr"]
+N32 --> N37
+N38["literal"]
+N37 --> N38
+N39["dec"]
+N38 --> N39
+N40["1"]
+N39 --> N40
+N41[";"]
+N30 --> N41
+N42["end"]
+N22 --> N42

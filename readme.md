@@ -39,7 +39,7 @@ lib/cJSON/cJSON.c
 Скомпилировать в CLion
 
 Далее можно запустить программу:
-./cmake-build-debug/system_software_lab_2 input.mylang ast.mmd
+./cmake-build-debug/system_software_lab_2 input.mylang ast.mmd cfg
 
 mono runtime - нужно скачать для третьей лабораторной или использовать готовое remote tasks для windows
 
