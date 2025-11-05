@@ -1,12 +1,12 @@
 
-def main ()
+def main1 ()
 
 i=1;
 
 end
 
 
-def main1 ()
+def main2 ()
 
 i=1;
 

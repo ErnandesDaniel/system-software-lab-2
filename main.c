@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <direct.h>
+#include <io.h>
+#include <windows.h>
 
 #include "lib/tree-sitter/lib/include/tree_sitter/api.h"
 #include "src/tree_sitter/parser.h"
@@ -159,11 +161,27 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Создаем директорию для файлов функций
+    // Создаем директорию для файлов функций и очищаем ее
     if (_mkdir(argv[3]) != 0 && errno != EEXIST) {
         perror("Failed to create output directory");
         free(content);
         return 1;
+    } else if (errno == EEXIST) {
+        // Директория существует, очищаем ее
+        char search_path[256];
+        sprintf(search_path, "%s\\*", argv[3]);
+        WIN32_FIND_DATA find_data;
+        HANDLE hFind = FindFirstFile(search_path, &find_data);
+        if (hFind != INVALID_HANDLE_VALUE) {
+            do {
+                if (strcmp(find_data.cFileName, ".") != 0 && strcmp(find_data.cFileName, "..") != 0) {
+                    char file_path[256];
+                    sprintf(file_path, "%s\\%s", argv[3], find_data.cFileName);
+                    DeleteFile(file_path);
+                }
+            } while (FindNextFile(hFind, &find_data));
+            FindClose(hFind);
+        }
     }
 
     // Инициализация парсера
