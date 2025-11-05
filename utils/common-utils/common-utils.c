@@ -22,8 +22,6 @@ char* read_file(const char* filename, long* size) {
     return buffer;
 }
 
-
-
 // Рекурсивная функция для вывода ошибок разбора
 void print_parse_errors(TSNode node, const char* source, int depth) {
     if (ts_node_is_error(node) || ts_node_has_error(node)) {
@@ -62,7 +60,3 @@ void print_parse_errors(TSNode node, const char* source, int depth) {
         }
     }
 }
-
-
-
-

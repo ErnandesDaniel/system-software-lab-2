@@ -16,8 +16,7 @@ add_executable(system_software_lab_2
 target_include_directories(system_software_lab_2 PRIVATE
         lib/tree-sitter/lib/include        # ← здесь лежит api.h библиотеки tree-sitter
         lib/tree-sitter/lib/src            # ← здесь лежат alloc.c, parser.c и т.д. библиотеки tree-sitter
-        utils/common-utils
-        utils/mermaid-utils
+        utils
 )
 
 
