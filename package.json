@@ -1,0 +1,22 @@
+{
+  "name": "tree-sitter-mylang",
+  "version": "1.0.0",
+  "description": "для форматирования кода нужно использовать команду вида:",
+  "main": "grammar.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tree-sitter-cli": "^0.25.10"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.mylang",
+      "path": ".",
+      "file-types": ["mylang"]
+    }
+  ]
+}
