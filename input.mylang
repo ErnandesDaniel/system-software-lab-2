@@ -1,10 +1,7 @@
 
 
-
 def main ()
 
-
-a=1+4*6+f(x, y, z);
-
+a=1;
 
 end

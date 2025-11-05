@@ -62,6 +62,30 @@ void generate_mermaid_node(TSNode node, const char* source, char** diagram, int*
         append_to_diagram(diagram, edge_line);
     }
 
+    // Для идентификаторов и десятичных литералов добавляем узел с текстом
+    if (strcmp(type, "identifier") == 0 || strcmp(type, "dec") == 0) {
+        uint32_t start = ts_node_start_byte(node);
+        uint32_t end = ts_node_end_byte(node);
+        uint32_t len = end - start;
+        char* text = malloc(len + 1);
+        memcpy(text, source + start, len);
+        text[len] = '\0';
+
+        int text_id = (*id_counter)++;
+        char text_id_str[16];
+        sprintf(text_id_str, "N%d", text_id);
+
+        char text_node_line[256];
+        sprintf(text_node_line, "%s[\"%s\"]\n", text_id_str, text);
+        append_to_diagram(diagram, text_node_line);
+
+        char text_edge_line[256];
+        sprintf(text_edge_line, "%s --> %s\n", id_str, text_id_str);
+        append_to_diagram(diagram, text_edge_line);
+
+        free(text);
+    }
+
     // Обрабатываем дочерние узлы
     uint32_t child_count = ts_node_child_count(node);
     for (uint32_t i = 0; i < child_count; i++) {
