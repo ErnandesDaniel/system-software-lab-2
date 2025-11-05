@@ -1,3 +1,7 @@
+
+Запуск скомпилированного кода в Clion
+./cmake-build-debug/system_software_lab_2 input.mylang ast.mmd cfg
+
 установить зависимости Node.js:
 npm install
 
