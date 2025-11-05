@@ -4,3 +4,10 @@ def main ()
 i=1;
 
 end
+
+
+def main1 ()
+
+i=1;
+
+end

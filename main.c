@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <direct.h>
 
 #include "lib/tree-sitter/lib/include/tree_sitter/api.h"
 #include "src/tree_sitter/parser.h"
@@ -146,8 +147,8 @@ char* generate_mermaid(TSNode node, const char* source) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s <input_file> <output_mmd>\n", argv[0]);
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <input_file> <output_mmd> <output_dir>\n", argv[0]);
         return 1;
     }
 
@@ -155,6 +156,13 @@ int main(int argc, char *argv[]) {
     char* content = read_file(argv[1], &file_size);
     if (!content) {
         perror("The input file could not be read");
+        return 1;
+    }
+
+    // Создаем директорию для файлов функций
+    if (_mkdir(argv[3]) != 0 && errno != EEXIST) {
+        perror("Failed to create output directory");
+        free(content);
         return 1;
     }
 
@@ -176,7 +184,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Генерируем Mermaid диаграмму
+    // Генерируем Mermaid диаграмму для всего файла
     char *mermaid_str = generate_mermaid(root_node, content);
 
     if (!mermaid_str) {
@@ -187,7 +195,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Создаем MD файл с диаграммой
+    // Создаем MD файл с диаграммой всего файла
     FILE *out_md = fopen(argv[2], "w");
     if (!out_md) {
         perror("Failed to create MD output file");
@@ -202,6 +210,46 @@ int main(int argc, char *argv[]) {
 
     fclose(out_md);
     free(mermaid_str);
+
+    // Теперь генерируем файлы для каждой функции
+    uint32_t child_count = ts_node_child_count(root_node);
+    for (uint32_t i = 0; i < child_count; i++) {
+        TSNode child = ts_node_child(root_node, i);
+        if (strcmp(ts_node_type(child), "source_item") == 0) {
+            // Находим сигнатуру функции
+            TSNode signature = ts_node_child_by_field_name(child, "signature", strlen("signature"));
+            if (!ts_node_is_null(signature)) {
+                TSNode func_name_node = ts_node_child_by_field_name(signature, "name", strlen("name"));
+                if (!ts_node_is_null(func_name_node)) {
+                    uint32_t start = ts_node_start_byte(func_name_node);
+                    uint32_t end = ts_node_end_byte(func_name_node);
+                    size_t len = end - start;
+                    char* func_name = malloc(len + 1);
+                    if (func_name) {
+                        memcpy(func_name, content + start, len);
+                        func_name[len] = '\0';
+
+                        // Генерируем Mermaid для этой функции
+                        char* func_mermaid = generate_mermaid(child, content);
+                        if (func_mermaid) {
+                            // Создаем файл для функции
+                            char filepath[256];
+                            sprintf(filepath, "%s/%s.mmd", argv[3], func_name);
+                            FILE* func_file = fopen(filepath, "w");
+                            if (func_file) {
+                                fputs(func_mermaid, func_file);
+                                fclose(func_file);
+                            } else {
+                                fprintf(stderr, "Failed to create file for function %s\n", func_name);
+                            }
+                            free(func_mermaid);
+                        }
+                        free(func_name);
+                    }
+                }
+            }
+        }
+    }
 
     ts_tree_delete(tree);
     ts_parser_delete(parser);
