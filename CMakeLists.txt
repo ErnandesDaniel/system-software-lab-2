@@ -7,7 +7,6 @@ set(CMAKE_C_STANDARD 17)
 add_executable(system_software_lab_2
         main.c
         lib/tree-sitter/lib/src/lib.c # библиотека tree-sitter
-        lib/cJSON/cJSON.c # библиотека для работы с JSON
         src/parser.c # сгенерированный для языка mylang парсер
 )
 
