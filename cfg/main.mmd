@@ -1,42 +1,6 @@
 graph TD;
-N0["source_item"]
-N1["def"]
-N0 --> N1
-N2["func_signature"]
-N0 --> N2
-N3["identifier"]
-N2 --> N3
-N4["main"]
-N3 --> N4
-N5["("]
-N2 --> N5
-N6[")"]
-N2 --> N6
-N7["statement"]
-N0 --> N7
-N8["expression_statement"]
-N7 --> N8
-N9["expr"]
-N8 --> N9
-N10["binary_expr"]
-N9 --> N10
-N11["expr"]
-N10 --> N11
-N12["identifier"]
-N11 --> N12
-N13["a"]
-N12 --> N13
-N14["="]
-N10 --> N14
-N15["expr"]
-N10 --> N15
-N16["literal"]
-N15 --> N16
-N17["dec"]
-N16 --> N17
-N18["1"]
-N17 --> N18
-N19[";"]
-N8 --> N19
-N20["end"]
-N0 --> N20
+B0["Entry"]
+B0 --> B2
+B2["a=1;"]
+B2 --> B1
+B1["Exit"]

@@ -107,13 +107,275 @@ char* generate_mermaid(TSNode node, const char* source) {
     return diagram;
 }
 
-// Функция для генерации Mermaid диаграммы для функции
-char* generate_mermaid_for_function(TSNode func_node, const char* source) {
+// Структура для представления блока в CFG
+typedef struct CFGBlock {
+    int id;
+    char* label;
+    struct CFGBlock* next_true;  // для условных переходов (true ветвь)
+    struct CFGBlock* next_false; // для условных переходов (false ветвь)
+    struct CFGBlock* next;       // для последовательных переходов
+} CFGBlock;
+
+// Функция для создания нового блока CFG
+CFGBlock* create_cfg_block(int* id_counter, const char* label);
+
+// Функция для генерации CFG из AST функции
+CFGBlock* generate_cfg_from_function(TSNode func_node, const char* source, int* id_counter);
+
+// Функция для обработки statements
+CFGBlock* process_statements(TSNode statements_node, const char* source, int* id_counter, CFGBlock* exit_block);
+
+// Функция для обработки if statement
+CFGBlock* process_if_statement(TSNode if_node, const char* source, int* id_counter, CFGBlock* exit_block);
+
+// Функция для обработки loop statement
+CFGBlock* process_loop_statement(TSNode loop_node, const char* source, int* id_counter, CFGBlock* exit_block);
+
+// Функция для обработки repeat statement
+CFGBlock* process_repeat_statement(TSNode repeat_node, const char* source, int* id_counter, CFGBlock* exit_block);
+
+// Функция для создания нового блока CFG
+CFGBlock* create_cfg_block(int* id_counter, const char* label) {
+    CFGBlock* block = malloc(sizeof(CFGBlock));
+    block->id = (*id_counter)++;
+    block->label = strdup(label);
+    block->next_true = NULL;
+    block->next_false = NULL;
+    block->next = NULL;
+    return block;
+}
+
+// Функция для генерации CFG из AST функции
+CFGBlock* generate_cfg_from_function(TSNode func_node, const char* source, int* id_counter) {
+    CFGBlock* entry_block = create_cfg_block(id_counter, "Entry");
+
+    // Найдем тело функции (repeat statement)
+    uint32_t child_count = ts_node_child_count(func_node);
+    TSNode body_statements = {0};
+    for (uint32_t i = 0; i < child_count; i++) {
+        TSNode child = ts_node_child(func_node, i);
+        const char* type = ts_node_type(child);
+        if (strcmp(type, "statement") == 0) {
+            body_statements = child;
+            break;
+        }
+    }
+
+    if (!ts_node_is_null(body_statements)) {
+        CFGBlock* exit_block = create_cfg_block(id_counter, "Exit");
+        entry_block->next = process_statements(body_statements, source, id_counter, exit_block);
+        return entry_block;
+    }
+
+    return entry_block;
+}
+
+// Функция для обработки statements
+CFGBlock* process_statements(TSNode statements_node, const char* source, int* id_counter, CFGBlock* exit_block) {
+    uint32_t child_count = ts_node_child_count(statements_node);
+    CFGBlock* current_block = NULL;
+    CFGBlock* first_block = NULL;
+
+    for (uint32_t i = 0; i < child_count; i++) {
+        TSNode child = ts_node_child(statements_node, i);
+        const char* type = ts_node_type(child);
+
+        if (strcmp(type, "expression_statement") == 0) {
+            // Создаем блок для выражения
+            uint32_t start = ts_node_start_byte(child);
+            uint32_t end = ts_node_end_byte(child);
+            uint32_t len = end - start;
+            char* stmt_text = malloc(len + 1);
+            memcpy(stmt_text, source + start, len);
+            stmt_text[len] = '\0';
+
+            CFGBlock* stmt_block = create_cfg_block(id_counter, stmt_text);
+            free(stmt_text);
+
+            if (current_block) {
+                current_block->next = stmt_block;
+            } else {
+                first_block = stmt_block;
+            }
+            current_block = stmt_block;
+        } else if (strcmp(type, "if_statement") == 0) {
+            // Обработка if statement
+            CFGBlock* if_block = process_if_statement(child, source, id_counter, exit_block);
+            if (current_block) {
+                current_block->next = if_block;
+            } else {
+                first_block = if_block;
+            }
+            // После if, соединяем с exit через merge block
+            CFGBlock* merge_block = create_cfg_block(id_counter, "Merge");
+            merge_block->next = exit_block;
+            current_block = merge_block;
+        } else if (strcmp(type, "loop_statement") == 0) {
+            // Обработка loop statement
+            CFGBlock* loop_block = process_loop_statement(child, source, id_counter, exit_block);
+            if (current_block) {
+                current_block->next = loop_block;
+            } else {
+                first_block = loop_block;
+            }
+            current_block = NULL; // После loop, поток может не продолжаться последовательно
+        } else if (strcmp(type, "repeat_statement") == 0) {
+            // Обработка repeat statement
+            CFGBlock* repeat_block = process_repeat_statement(child, source, id_counter, exit_block);
+            if (current_block) {
+                current_block->next = repeat_block;
+            } else {
+                first_block = repeat_block;
+            }
+            current_block = NULL;
+        } else if (strcmp(type, "break_statement") == 0) {
+            // Обработка break statement
+            CFGBlock* break_block = create_cfg_block(id_counter, "break");
+            break_block->next = exit_block; // break выходит из функции
+            if (current_block) {
+                current_block->next = break_block;
+            } else {
+                first_block = break_block;
+            }
+            current_block = NULL;
+        }
+    }
+
+    if (current_block) {
+        current_block->next = exit_block;
+    } else if (!first_block) {
+        first_block = exit_block;
+    }
+
+    return first_block;
+}
+
+// Функция для обработки if statement
+CFGBlock* process_if_statement(TSNode if_node, const char* source, int* id_counter, CFGBlock* exit_block) {
+    CFGBlock* condition_block = create_cfg_block(id_counter, "if condition");
+
+    // Найдем condition, consequence и alternative
+    TSNode condition = {0}, consequence = {0}, alternative = {0};
+    uint32_t child_count = ts_node_child_count(if_node);
+    for (uint32_t i = 0; i < child_count; i++) {
+        TSNode child = ts_node_child(if_node, i);
+        const char* type = ts_node_type(child);
+        if (strcmp(type, "expr") == 0) {
+            condition = child;
+        } else if (strcmp(type, "statement") == 0 && ts_node_is_null(consequence)) {
+            consequence = child;
+        } else if (strcmp(type, "statement") == 0 && !ts_node_is_null(consequence)) {
+            alternative = child;
+        }
+    }
+
+    // Создаем блоки для ветвей
+    CFGBlock* true_block = process_statements(consequence, source, id_counter, exit_block);
+    CFGBlock* false_block = ts_node_is_null(alternative) ? exit_block : process_statements(alternative, source, id_counter, exit_block);
+
+    condition_block->next_true = true_block;
+    condition_block->next_false = false_block;
+
+    return condition_block;
+}
+
+// Функция для обработки loop statement
+CFGBlock* process_loop_statement(TSNode loop_node, const char* source, int* id_counter, CFGBlock* exit_block) {
+    CFGBlock* condition_block = create_cfg_block(id_counter, "loop condition");
+
+    // Найдем condition и body
+    TSNode condition = {0}, body = {0};
+    uint32_t child_count = ts_node_child_count(loop_node);
+    for (uint32_t i = 0; i < child_count; i++) {
+        TSNode child = ts_node_child(loop_node, i);
+        const char* type = ts_node_type(child);
+        if (strcmp(type, "expr") == 0) {
+            condition = child;
+        } else if (strcmp(type, "statement") == 0) {
+            body = child;
+        }
+    }
+
+    CFGBlock* body_block = process_statements(body, source, id_counter, condition_block); // тело ведет обратно к условию
+    condition_block->next_true = body_block;
+    condition_block->next_false = exit_block;
+
+    return condition_block;
+}
+
+// Функция для обработки repeat statement
+CFGBlock* process_repeat_statement(TSNode repeat_node, const char* source, int* id_counter, CFGBlock* exit_block) {
+    CFGBlock* body_block = create_cfg_block(id_counter, "repeat body");
+
+    // Найдем body и condition
+    TSNode body = {0}, condition = {0};
+    uint32_t child_count = ts_node_child_count(repeat_node);
+    for (uint32_t i = 0; i < child_count; i++) {
+        TSNode child = ts_node_child(repeat_node, i);
+        const char* type = ts_node_type(child);
+        if (strcmp(type, "statement") == 0) {
+            body = child;
+        } else if (strcmp(type, "expr") == 0) {
+            condition = child;
+        }
+    }
+
+    CFGBlock* condition_block = create_cfg_block(id_counter, "repeat condition");
+    condition_block->next_true = body_block; // если true, повторяем тело
+    condition_block->next_false = exit_block; // если false, выходим
+
+    body_block->next = condition_block; // после тела проверяем условие
+
+    return body_block;
+}
+
+// Функция для генерации Mermaid диаграммы из CFG
+char* generate_mermaid_from_cfg(CFGBlock* cfg) {
     char* diagram = NULL;
     append_to_diagram(&diagram, "graph TD;\n");
 
+    // Рекурсивная функция для обхода CFG
+    void traverse_cfg(CFGBlock* block) {
+        if (!block) return;
+
+        // Добавляем узел
+        char node_line[256];
+        sprintf(node_line, "B%d[\"%s\"]\n", block->id, block->label);
+        append_to_diagram(&diagram, node_line);
+
+        // Добавляем ребра
+        if (block->next) {
+            char edge_line[256];
+            sprintf(edge_line, "B%d --> B%d\n", block->id, block->next->id);
+            append_to_diagram(&diagram, edge_line);
+            traverse_cfg(block->next);
+        }
+        if (block->next_true) {
+            char edge_line[256];
+            sprintf(edge_line, "B%d -->|true| B%d\n", block->id, block->next_true->id);
+            append_to_diagram(&diagram, edge_line);
+            traverse_cfg(block->next_true);
+        }
+        if (block->next_false) {
+            char edge_line[256];
+            sprintf(edge_line, "B%d -->|false| B%d\n", block->id, block->next_false->id);
+            append_to_diagram(&diagram, edge_line);
+            traverse_cfg(block->next_false);
+        }
+    }
+
+    traverse_cfg(cfg);
+    return diagram;
+}
+
+// Функция для генерации Mermaid диаграммы для функции (CFG)
+char* generate_mermaid_for_function(TSNode func_node, const char* source) {
     int id_counter = 0;
-    generate_mermaid_node(func_node, source, &diagram, &id_counter, NULL);
+    CFGBlock* cfg = generate_cfg_from_function(func_node, source, &id_counter);
+    char* diagram = generate_mermaid_from_cfg(cfg);
+
+    // Освобождение памяти CFG (упрощенная версия)
+    // TODO: Реализовать полное освобождение памяти
 
     return diagram;
 }
