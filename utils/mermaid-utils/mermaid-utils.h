@@ -9,9 +9,6 @@ void append_to_diagram(char** diagram, const char* addition);
 // Recursive function to generate Mermaid node
 void generate_mermaid_node(TSNode node, const char* source, char** diagram, int* id_counter, const char* parent_id);
 
-// Recursive function to print parse errors
-void print_parse_errors(TSNode node, const char* source, int depth);
-
 // Function to generate Mermaid diagram
 char* generate_mermaid(TSNode node, const char* source);
 
