@@ -343,8 +343,11 @@ CFGGraph* cfg_build_from_ast(TSNode function_node, const char* source) {
         TSNode child = ts_node_child(function_node, i);
         const char* child_type = ts_node_type(child);
 
-        // Skip non-statement nodes (like function signature)
-        if (strcmp(child_type, "statement") == 0) {
+        // Process statement nodes
+        if (strcmp(child_type, "statement") == 0 || strcmp(child_type, "loop_statement") == 0 ||
+            strcmp(child_type, "if_statement") == 0 || strcmp(child_type, "expression_statement") == 0 ||
+            strcmp(child_type, "block_statement") == 0 || strcmp(child_type, "break_statement") == 0 ||
+            strcmp(child_type, "repeat_statement") == 0) {
             last_node = cfg_process_statements(child, source, graph, last_node);
         }
     }
@@ -443,6 +446,52 @@ CFGNode* cfg_process_statements(TSNode node, const char* source, CFGGraph* graph
 
         free(cond_text);
         return merge_node;
+    } else if (strcmp(type, "loop_statement") == 0) {
+        // Handle while/until loop
+        // Extract condition text for label
+        TSNode condition = ts_node_child_by_field_name(node, "condition", strlen("condition"));
+        uint32_t cond_start = ts_node_start_byte(condition);
+        uint32_t cond_end = ts_node_end_byte(condition);
+        size_t cond_len = cond_end - cond_start;
+        char* cond_text = malloc(cond_len + 1);
+        if (cond_text) {
+            memcpy(cond_text, source + cond_start, cond_len);
+            cond_text[cond_len] = '\0';
+        }
+
+        CFGNode* condition_node = cfg_create_node(CFG_NODE_CONDITION, cond_text ? cond_text : "condition", (void*)&node);
+        cfg_add_node(graph, condition_node);
+
+        CFGEdge* cond_edge = cfg_create_edge(prev_node, condition_node, CFG_EDGE_UNCONDITIONAL, NULL);
+        cfg_add_edge(graph, cond_edge);
+
+        // Process loop body
+        CFGNode* body_end = condition_node;
+        TSNode body = ts_node_child_by_field_name(node, "body", strlen("body"));
+        if (!ts_node_is_null(body)) {
+            uint32_t body_child_count = ts_node_child_count(body);
+            for (uint32_t i = 0; i < body_child_count; i++) {
+                TSNode body_child = ts_node_child(body, i);
+                body_end = cfg_process_statements(body_child, source, graph, body_end);
+            }
+        }
+
+        // Create back edge from body end to condition (for loop continuation)
+        if (body_end != condition_node) {
+            CFGEdge* back_edge = cfg_create_edge(body_end, condition_node, CFG_EDGE_BACK_EDGE, NULL);
+            cfg_add_edge(graph, back_edge);
+        }
+
+        // Create exit point for the loop
+        CFGNode* loop_exit = cfg_create_node(CFG_NODE_BASIC_BLOCK, "end loop", NULL);
+        cfg_add_node(graph, loop_exit);
+
+        // Add false edge from condition to loop exit
+        CFGEdge* false_edge = cfg_create_edge(condition_node, loop_exit, CFG_EDGE_FALSE, NULL);
+        cfg_add_edge(graph, false_edge);
+
+        free(cond_text);
+        return loop_exit;
     }
 
     // Default: treat as basic block with extracted content

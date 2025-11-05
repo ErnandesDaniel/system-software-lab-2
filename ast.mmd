@@ -14,28 +14,28 @@ N6[")"]
 N3 --> N6
 N7["statement"]
 N1 --> N7
-N8["expression_statement"]
+N8["loop_statement"]
 N7 --> N8
-N9["expr"]
+N9["while"]
 N8 --> N9
-N10["binary_expr"]
-N9 --> N10
-N11["expr"]
+N10["expr"]
+N8 --> N10
+N11["binary_expr"]
 N10 --> N11
-N12["identifier: a"]
+N12["expr"]
 N11 --> N12
-N13["="]
-N10 --> N13
-N14["expr"]
-N10 --> N14
-N15["literal"]
-N14 --> N15
-N16["dec: 5"]
+N13["identifier: i"]
+N12 --> N13
+N14["<"]
+N11 --> N14
+N15["expr"]
+N11 --> N15
+N16["literal"]
 N15 --> N16
-N17[";"]
-N8 --> N17
+N17["dec: 5"]
+N16 --> N17
 N18["statement"]
-N1 --> N18
+N8 --> N18
 N19["expression_statement"]
 N18 --> N19
 N20["expr"]
@@ -44,109 +44,29 @@ N21["binary_expr"]
 N20 --> N21
 N22["expr"]
 N21 --> N22
-N23["identifier: b"]
+N23["identifier: i"]
 N22 --> N23
 N24["="]
 N21 --> N24
 N25["expr"]
 N21 --> N25
-N26["literal"]
+N26["binary_expr"]
 N25 --> N26
-N27["dec: 6"]
+N27["expr"]
 N26 --> N27
-N28[";"]
-N19 --> N28
-N29["statement"]
-N1 --> N29
-N30["if_statement"]
-N29 --> N30
-N31["if"]
+N28["identifier: i"]
+N27 --> N28
+N29["+"]
+N26 --> N29
+N30["expr"]
+N26 --> N30
+N31["literal"]
 N30 --> N31
-N32["expr"]
-N30 --> N32
-N33["binary_expr"]
-N32 --> N33
-N34["expr"]
-N33 --> N34
-N35["identifier: b"]
-N34 --> N35
-N36["<"]
-N33 --> N36
-N37["expr"]
-N33 --> N37
-N38["literal"]
-N37 --> N38
-N39["dec: 5"]
-N38 --> N39
-N40["then"]
-N30 --> N40
-N41["statement"]
-N30 --> N41
-N42["expression_statement"]
-N41 --> N42
-N43["expr"]
-N42 --> N43
-N44["binary_expr"]
-N43 --> N44
-N45["expr"]
-N44 --> N45
-N46["identifier: i"]
-N45 --> N46
-N47["="]
-N44 --> N47
-N48["expr"]
-N44 --> N48
-N49["literal"]
-N48 --> N49
-N50["dec: 5"]
-N49 --> N50
-N51[";"]
-N42 --> N51
-N52["else"]
-N30 --> N52
-N53["statement"]
-N30 --> N53
-N54["expression_statement"]
-N53 --> N54
-N55["expr"]
-N54 --> N55
-N56["binary_expr"]
-N55 --> N56
-N57["expr"]
-N56 --> N57
-N58["identifier: i"]
-N57 --> N58
-N59["="]
-N56 --> N59
-N60["expr"]
-N56 --> N60
-N61["literal"]
-N60 --> N61
-N62["dec: 7"]
-N61 --> N62
-N63[";"]
-N54 --> N63
-N64["statement"]
-N1 --> N64
-N65["expression_statement"]
-N64 --> N65
-N66["expr"]
-N65 --> N66
-N67["binary_expr"]
-N66 --> N67
-N68["expr"]
-N67 --> N68
-N69["identifier: i"]
-N68 --> N69
-N70["="]
-N67 --> N70
-N71["expr"]
-N67 --> N71
-N72["literal"]
-N71 --> N72
-N73["dec: 5"]
-N72 --> N73
-N74[";"]
-N65 --> N74
-N75["end"]
-N1 --> N75
+N32["dec: 1"]
+N31 --> N32
+N33[";"]
+N19 --> N33
+N34["end"]
+N8 --> N34
+N35["end"]
+N1 --> N35

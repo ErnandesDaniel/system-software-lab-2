@@ -1,19 +1,19 @@
-
 def main ()
 
-a=5;
+while i<5
 
-b=6;
-
-if b<5 then
-
-i=5;
-
-else
-
-i=7;
-
-
-i=5;
+i=i+1;
 
 end
+
+
+end
+
+
+
+
+
+
+
+
+

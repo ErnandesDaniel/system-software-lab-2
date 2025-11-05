@@ -1,19 +1,11 @@
 graph TD;
 N0["ENTRY: ENTRY"]
 N1["EXIT: EXIT"]
-N2["BASIC_BLOCK: a=5"]
-N3["BASIC_BLOCK: b=6"]
-N4["CONDITION: b<5"]
-N5["BASIC_BLOCK: i=5"]
-N6["BASIC_BLOCK: i=7"]
-N7["BASIC_BLOCK: end if"]
-N8["BASIC_BLOCK: i=5"]
+N2["CONDITION: i<5"]
+N3["BASIC_BLOCK: i=i+1"]
+N4["BASIC_BLOCK: end loop"]
 N0 --> N2
 N2 --> N3
-N3 --> N4
-N4 --> N5
-N4 --> N6
-N5 --> N7
-N6 --> N7
-N7 --> N8
-N8 --> N1
+N3 --> N2
+N2 --> N4
+N4 --> N1
