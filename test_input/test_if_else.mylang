@@ -1,0 +1,17 @@
+
+def main ()
+
+if 5 then
+
+i=1;
+
+else
+
+i=4;
+
+end
+
+
+
+
+
