@@ -89,11 +89,6 @@ typedef enum {
 } IROpcode;
 
 
-
-
-
-
-
 typedef char BlockId[64]; // уникальное имя блока: "BB_0", "if_then", и т.д.
 
 typedef struct IRInstruction {
@@ -143,8 +138,6 @@ typedef struct IRInstruction {
 
 
 
-
-
 // Базовый блок
 
 #define MAX_INSTRUCTIONS 256  // достаточно для большинства блоков
@@ -159,11 +152,6 @@ typedef struct BasicBlock {
     size_t num_successors; // сколько преемников реально есть.
 } BasicBlock;
 
-
-
-
-
-
 //Граф потока управления
 
 //Это вся функция целиком: все блоки + связи между ними.
@@ -176,15 +164,3 @@ typedef struct CFG {
     BasicBlock blocks[MAX_BLOCKS]; //массив блоков
     size_t num_blocks; //сколько реально блоков используется
 } CFG;
-
-
-
-
-
-
-
-
-
-
-
-
