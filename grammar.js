@@ -185,7 +185,14 @@ module.exports = grammar({
             $.repeat_statement,
             $.break_statement,
             $.expression_statement,
-            $.block_statement
+            $.block_statement,
+            $.return_statement
+        ),
+
+        return_statement: $ => seq(
+            'return',
+            optional($.expr), // может быть return; или return expr;
+            ';'
         ),
 
         // if: 'if' expr 'then' statement ('else' statement)?;
@@ -224,7 +231,7 @@ module.exports = grammar({
         // block: ('begin'|'{') (statement|sourceItem)* ('end'|'}');
         block_statement: $ => seq(
             choice('begin', '{'),
-            field('body', repeat(choice($.statement, $.source_item))),
+            field('body', repeat($.statement)),
             choice('end', '}')
         ),
 
