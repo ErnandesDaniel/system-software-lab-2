@@ -1,4 +1,12 @@
 
+#include <stdint.h>
+#include <stdbool.h>
+
+//uint32_t → требует <stdint.h>
+//bool → требует <stdbool.h>
+
+
+
 //Типы данных
 
 typedef enum {
@@ -7,7 +15,7 @@ typedef enum {
     TYPE_STRING,    // 'string'
     TYPE_VOID,      // для функций
     TYPE_ARRAY,     // массив
-    TYPE_NAMED      // custom identifier (MyType)
+    TYPE_NAMED       // пользовательский тип (например, MyType); требует таблицы типов
 } TypeKind;
 
 typedef struct Type {
@@ -73,7 +81,12 @@ typedef enum {
     // === Логические операции (работают с bool) ===
     IR_AND,  // Логическое И: result = left && right
     IR_OR,   // Логическое ИЛИ: result = left || right
-    IR_NOT,  // Логическое НЕ: result = !operand
+
+    // === Унарные операции ===
+    IR_NOT,   // Логическое НЕ: result = !operand
+    IR_NEG,   // Унарный минус: result = -operand
+    IR_POS,   // Унарный плюс: result = +operand (обычно ничего не делает, но синтаксически есть)
+    IR_BIT_NOT,  // Побитовое НЕ: result = ~operand
 
     // === Присваивание ===
     IR_ASSIGN,  // Присвоить значение переменной: var = value
@@ -133,6 +146,19 @@ typedef struct IRInstruction {
             int num_args;         // Сколько аргументов реально передаётся
         } call;
 
+        // Присваивание
+        struct {
+            char target[64];   // имя переменной, которой присваиваем (например, "x")
+            Operand value;     // значение, которое присваиваем (например, константа 5)
+        } assign;
+
+        // Унарные операции — работают с одним операндом
+        // используются для: !x, -x, +x, ~x
+        struct {
+            char result[64];      // Имя переменной для сохранения результата (например, "t1")
+            Type* result_type;    // Тип результата (должен соответствовать операции и операнду)
+            Operand operand;      // Единственный входной операнд (например, переменная "x" или константа)
+        } unary;
     } data;
 } IRInstruction;
 
@@ -141,7 +167,7 @@ typedef struct IRInstruction {
 // Базовый блок
 
 #define MAX_INSTRUCTIONS 256  // достаточно для большинства блоков
-#define MAX_SUCCESSORS 4      // макс. исходящих переходов (обычно 1 или 2)
+#define MAX_SUCCESSORS 4      // максимальное число исходящих переходов (обычно 1 или 2)
 
 typedef struct BasicBlock {
     BlockId id;                              // уникальный ID блока: "BB_0"
