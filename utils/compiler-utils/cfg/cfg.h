@@ -1,31 +1,14 @@
+#ifndef CFG_UTILS_H
+#define CFG_UTILS_H
 
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "compiler-utils/semantics-analysis/functions/functions.h"
+
 //uint32_t → требует <stdint.h>
 //bool → требует <stdbool.h>
 
-
-
-//Типы данных
-
-typedef enum {
-    TYPE_BOOL,      // 'bool'
-    TYPE_INT,       // 'byte', 'int', 'uint', 'long', 'ulong', 'char', и все числовые литералы
-    TYPE_STRING,    // 'string'
-    TYPE_VOID,      // для функций
-    TYPE_ARRAY,     // массив
-} TypeKind;
-
-typedef struct Type {
-    TypeKind kind;
-    union {
-        struct {
-            struct Type* element_type;  // тип элементов массива
-            uint32_t size;                   // количество элементов
-        } array_info;  // это только для массивов!
-    } data;
-} Type;
 
 // Операнды
 
@@ -197,3 +180,8 @@ typedef struct CFG {
     size_t num_blocks; //сколько реально блоков используется
 
 } CFG;
+
+CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, TSNode root_node);
+
+
+#endif

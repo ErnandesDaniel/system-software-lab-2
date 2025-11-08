@@ -5,7 +5,10 @@
 #include "../lib/tree-sitter/lib/include/tree_sitter/api.h"
 #include "../src/tree_sitter/parser.h"
 
-#include "cfg-utils.h"
+#include "cfg.h"
+
+#include "compiler-utils/ast/ast.h"
+#include "compiler-utils/semantics-analysis/functions/functions.h"
 
 TSLanguage *tree_sitter_mylang(); // Объявляем функцию из parser.c
 
@@ -27,31 +30,19 @@ typedef struct CFGBuilderContext {
 
     int loop_depth;
 
+
+    // Информация о текущей функции (из symbol table)
+    FunctionInfo* current_function;
+
+
+    // Локальные переменные текущей функции
+    Symbol local_vars[64];
+    int local_count;
+
+
+
 } CFGBuilderContext;
 
-
-
-//===============================Утилиты для работы с tree setter===========================
-
-// Копирует текст узла в буфер. Не добавляет экранирование — возвращает "как есть".
-void get_node_text(const TSNode node, const char* source_code, char* buffer, const size_t buffer_size) {
-
-    if (buffer_size == 0) return;
-
-    const uint32_t start = ts_node_start_byte(node);
-
-    const uint32_t end = ts_node_end_byte(node);
-
-    uint32_t len = end - start;
-
-    if (len >= buffer_size) {
-        len = buffer_size - 1; // оставляем место для '\0'
-    }
-
-    memcpy(buffer, source_code + start, len);
-
-    buffer[len] = '\0';
-}
 
 // Генерация имени переменной вида "t42"
 void generate_temp_name(CFGBuilderContext* ctx, char* buffer, const size_t buffer_size) {
@@ -122,43 +113,31 @@ Type* get_expr_type(TSNode expr_node, const char* source);
 
 //=========================================Обработка выражений (expressions)=============
 
-
-
-
 //Главный диспетчер выражений — вызывает нужный обработчик по типу
-void visit_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-
-
+Type* visit_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
 
 //Обрабатывает a + b,x && y и т.д.
-void visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
+Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
 
 
 //Обрабатывает-x,!flag,~mask.
-void visit_unary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-
+Type* visit_unary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
 
 //Просто делегирует visit_expr внутреннему выражению.
-void visit_parenthesized_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-
-
+Type* visit_parenthesized_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
 
 //Обрабатывает f(a, b)→ генерирует IR_CALL.
-void visit_call_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-
-
+Type* visit_call_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
 
 //Доступ к массиву:arr[i]
-void visit_slice_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-
-
+Type* visit_slice_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
 
 //Копирует имя идентификатора в result_var
-void visit_identifier_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
+Type* visit_identifier_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
 
 
 //Преобразует литерал в константу → генерирует временную переменную с IR_ASSIGN константы.
-void visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
+Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
 
 
 //======================Управление потоком (блоками и переходами)===========================
@@ -314,7 +293,7 @@ void emit_instruction(const CFGBuilderContext* ctx, const IRInstruction inst) {
 void visit_source_item(CFGBuilderContext* ctx, TSNode node);
 
 
-CFG* cfg_build_from_ast(const char* source_code, TSNode root_node) {
+CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, const TSNode root_node) {
 
     // Создание CFG
     CFG* cfg = calloc(1, sizeof(CFG));
@@ -327,12 +306,22 @@ CFG* cfg_build_from_ast(const char* source_code, TSNode root_node) {
 
     ctx.source_code = source_code;
 
+    ctx.current_function = func_info;
+
     ctx.temp_counter = 0;
 
     ctx.block_counter = 0;
 
-    ctx.loop_depth = 0;
+    // Инициализируем локальные переменные
+    symbol_table_init(&ctx.local_vars);
 
+    // Копируем параметры в локальную область
+    for (int i = 0; i < func_info->params.count; i++) {
+        Symbol* param = &func_info->params.symbols[i];
+        symbol_table_add(&ctx.local_vars, param->name, param->type);
+    }
+
+    // Создаём стартовый блок
     ctx.current_block = create_new_block(&ctx);
 
     if (!ctx.current_block) {
@@ -340,7 +329,9 @@ CFG* cfg_build_from_ast(const char* source_code, TSNode root_node) {
         return NULL;
     }
 
-    strcpy(cfg->entry_block_id, ctx.current_block->id);
+    strcpy(ctx.cfg->entry_block_id, ctx.current_block->id);
+
+    ctx.loop_depth = 0;
 
     visit_source_item(&ctx, root_node);
 
