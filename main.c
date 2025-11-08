@@ -25,7 +25,7 @@
 TSLanguage *tree_sitter_mylang(); // Объявляем функцию из parser.c
 
 
-int main(int argc, char *argv[]) {
+int main(const int argc, char *argv[]) {
     if (argc != 4) {
         fprintf(stderr, "Usage: %s <input_file> <output_mmd> <output_dir>\n", argv[0]);
         return 1;
@@ -112,12 +112,12 @@ int main(int argc, char *argv[]) {
     build_global_symbol_table(root_node, source_code);
 
     // Массив для хранения всех CFG
-    CFG* function_cfgs[MAX_FUNCTIONS];
 
     // Теперь генерируем файлы для каждой функции
     const uint32_t child_count = ts_node_child_count(root_node);
 
     for (uint32_t i = 0; i < child_count; i++) {
+        CFG* function_cfgs[MAX_FUNCTIONS];
 
         TSNode child = ts_node_child(root_node, i);
 
