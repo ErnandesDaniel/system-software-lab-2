@@ -73,7 +73,9 @@ const char* current_loop_exit(CFGBuilderContext* ctx);
 void add_successor(BasicBlock* block, const char* target_id);
 void emit_jump(CFGBuilderContext* ctx, const char* target);
 void emit_cond_br(CFGBuilderContext* ctx, Operand cond, const char* true_target, const char* false_target);
-
+Type* ensure_bool_expr(CFGBuilderContext* ctx, TSNode expr, char* result_var);
+Type* eval_to_temp(CFGBuilderContext* ctx, TSNode expr, char* out_temp);
+void visit_statements_with_break_context(CFGBuilderContext* ctx, TSNode parent, uint32_t start_idx, const char* exit_id);
 void visit_source_item(CFGBuilderContext* ctx, TSNode node);
 
 // ===============================================================
@@ -99,7 +101,6 @@ void generate_temp_name(CFGBuilderContext* ctx, char* buffer, const size_t buffe
 
     snprintf(buffer, buffer_size, "t%d", ctx->temp_counter++);
 }
-
 
 // Проверка bool в условных выражениях
 Type* ensure_bool_expr(CFGBuilderContext* ctx, TSNode expr, char* result_var) {
@@ -264,9 +265,7 @@ Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var){
 
         // Обрабатываем правый операнд
         char right_temp[64];
-        generate_temp_name(ctx, right_temp, sizeof(right_temp));
-        Type* right_type = visit_expr(ctx, right, right_temp);
-
+        Type* right_type = eval_to_temp(ctx, right, right_temp);
         // Добавляем переменную в локальную область (если новая)
         Symbol* existing = symbol_table_lookup(&ctx->local_vars, var_name);
         if (!existing) {
@@ -279,11 +278,8 @@ Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var){
         IRInstruction assign = {0};
         assign.opcode = IR_ASSIGN;
         strcpy(assign.data.assign.target, var_name);
-        assign.data.assign.value.kind = OPERAND_VAR;
-        assign.data.assign.value.data.var.name = strdup(right_temp);
-        assign.data.assign.value.data.var.type = right_type;
+        assign.data.assign.value = make_var_operand(right_temp, right_type);
         emit_instruction(ctx, assign);
-
         // Результат присваивания — значение справа (как в C)
         strcpy(result_var, right_temp);
         return right_type;
@@ -293,12 +289,8 @@ Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var){
 
     // Обрабатываем левый и правый операнды
     char left_temp[64], right_temp[64];
-    generate_temp_name(ctx, left_temp, sizeof(left_temp));
-    generate_temp_name(ctx, right_temp, sizeof(right_temp));
-
-    Type* left_type = visit_expr(ctx, left, left_temp);
-    Type* right_type = visit_expr(ctx, right, right_temp);
-
+    Type* left_type = eval_to_temp(ctx, left, left_temp);
+    Type* right_type = eval_to_temp(ctx, right, right_temp);
     // Определяем opcode и результирующий тип
     IROpcode opcode = IR_ADD; // заглушка
     Type* result_type = make_int_type();
@@ -315,7 +307,48 @@ Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var){
             (strcmp(op_text, "/") == 0) ? IR_DIV : IR_ADD; // % → можно добавить IR_MOD
 
         result_type = make_int_type();
+    }
+    // Операции сравнения → всегда bool
+    else if (strcmp(op_text, "==") == 0 || strcmp(op_text, "!=") == 0 ||
+             strcmp(op_text, "<") == 0 || strcmp(op_text, ">") == 0 ||
+             strcmp(op_text, "<=") == 0 || strcmp(op_text, ">=") == 0) {
+        opcode =
+            (strcmp(op_text, "==") == 0) ? IR_EQ :
+            (strcmp(op_text, "!=") == 0) ? IR_NE :
+            (strcmp(op_text, "<") == 0) ? IR_LT :
+            (strcmp(op_text, ">") == 0) ? IR_GT :
+            (strcmp(op_text, "<=") == 0) ? IR_LE : IR_GE;
+        result_type = make_bool_type();
+    }
+    // Логические операции (требуют bool-операндов)
+    else if (strcmp(op_text, "&&") == 0) {
+        opcode = IR_AND;
+        result_type = make_bool_type();
+        if (left_type->kind != TYPE_BOOL || right_type->kind != TYPE_BOOL) {
+            fprintf(stderr, "Предупреждение: операнды '&&' должны быть bool.\n");
         }
+    }
+    else if (strcmp(op_text, "||") == 0) {
+        opcode = IR_OR;
+        result_type = make_bool_type();
+        if (left_type->kind != TYPE_BOOL || right_type->kind != TYPE_BOOL) {
+            fprintf(stderr, "Предупреждение: операнды '||' должны быть bool.\n");
+        }
+    }
+    else {
+        fprintf(stderr, "Неизвестный бинарный оператор: '%s'\n", op_text);
+        return make_int_type();
+    }
+    // Генерируем вычисляющую инструкцию
+    IRInstruction compute = {0};
+    compute.opcode = opcode;
+    strcpy(compute.data.compute.result, result_var);
+    compute.data.compute.result_type = result_type;
+    compute.data.compute.operands[0] = make_var_operand(left_temp, left_type);
+    compute.data.compute.operands[1] = make_var_operand(right_temp, right_type);
+    compute.data.compute.num_operands = 2;
+    emit_instruction(ctx, compute);
+    return result_type;
 }
 
 //Обрабатывает-x,!flag,~mask.
@@ -330,9 +363,7 @@ Type* visit_unary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) {
 
     // Обрабатываем операнд
     char operand_temp[64];
-    generate_temp_name(ctx, operand_temp, sizeof(operand_temp));
-    Type* operand_type = visit_expr(ctx, operand_node, operand_temp);
-
+    Type* operand_type = eval_to_temp(ctx, operand_node, operand_temp);
     // Определяем opcode и результирующий тип
     IROpcode opcode = IR_NEG; // заглушка
     Type* result_type = operand_type; // по умолчанию тот же тип
@@ -367,10 +398,7 @@ Type* visit_unary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) {
     unary.opcode = opcode;
     strcpy(unary.data.unary.result, result_var);
     unary.data.unary.result_type = result_type;
-    unary.data.unary.operand.kind = OPERAND_VAR;
-    unary.data.unary.operand.data.var.name = strdup(operand_temp);
-    unary.data.unary.operand.data.var.type = operand_type;
-
+    unary.data.unary.operand = make_var_operand(operand_temp, operand_type);
     emit_instruction(ctx, unary);
     return result_type;
 }
@@ -436,12 +464,8 @@ Type* visit_call_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) {
             // Пропускаем запятые (терминалы)
             if (ts_node_is_named(arg_expr)) {
                 char arg_temp[64];
-                generate_temp_name(ctx, arg_temp, sizeof(arg_temp));
-                Type* arg_type = visit_expr(ctx, arg_expr, arg_temp);
-
-                args[num_args].kind = OPERAND_VAR;
-                args[num_args].data.var.name = strdup(arg_temp);
-                args[num_args].data.var.type = arg_type;
+                Type* arg_type = eval_to_temp(ctx, arg_expr, arg_temp);
+                args[num_args] = make_var_operand(arg_temp, arg_type);
                 num_args++;
             }
         }
@@ -481,9 +505,7 @@ Type* visit_slice_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) {
     }
 
     char array_name[64];
-    generate_temp_name(ctx, array_name, sizeof(array_name));
-    Type* array_type = visit_expr(ctx, array_expr, array_name);
-
+    Type* array_type = eval_to_temp(ctx, array_expr, array_name);
     // Проверка: должно быть массивом
     if (!array_type || array_type->kind != TYPE_ARRAY) {
         fprintf(stderr, "Ошибка: попытка доступа к не-массиву.\n");
@@ -526,9 +548,7 @@ Type* visit_slice_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) {
     }
 
     char start_index[64];
-    generate_temp_name(ctx, start_index, sizeof(start_index));
-    Type* start_type = visit_expr(ctx, start_expr, start_index);
-
+    Type* start_type = eval_to_temp(ctx, start_expr, start_index);
     // Проверка: индекс должен быть целым
     if (start_type->kind != TYPE_INT) {
         fprintf(stderr, "Предупреждение: индекс должен быть целым числом.\n");
@@ -550,9 +570,7 @@ Type* visit_slice_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) {
     } else {
         // === Срез: arr[i..j] ===
         char end_index[64];
-        generate_temp_name(ctx, end_index, sizeof(end_index));
-        Type* end_type = visit_expr(ctx, end_expr, end_index);
-
+        Type* end_type = eval_to_temp(ctx, end_expr, end_index);
         if (end_type->kind != TYPE_INT) {
             fprintf(stderr, "Предупреждение: конечный индекс должен быть целым.\n");
         }
@@ -743,23 +761,7 @@ void visit_if_statement(CFGBuilderContext* ctx, TSNode node) {
 
     // 1. Обрабатываем условие
     char cond_var[64];
-    generate_temp_name(ctx, cond_var, sizeof(cond_var));
-
-    // Условие — это expr (обычно на позиции 1)
-    TSNode cond_expr = ts_node_child_by_field_name(node, "condition", 9);
-    if (ts_node_is_null(cond_expr)) {
-        // fallback: берем первый expr после 'if'
-        cond_expr = ts_node_child(node, 1);
-    }
-
-    Type* cond_type = visit_expr(ctx, cond_expr, cond_var);
-
-    // Проверка: условие должно быть bool
-    if (cond_type->kind != TYPE_BOOL) {
-        fprintf(stderr, "Критическая ошибка: условие должно быть bool. Компиляция прервана.\n");
-        exit(1);
-    }
-
+    Type* cond_type = ensure_bool_expr(ctx, ts_node_child_by_field_name(node, "condition", 9), cond_var);
     // 2. Создаём блоки
     BasicBlock* then_block = create_new_block(ctx);
     BasicBlock* else_block = create_new_block(ctx);
@@ -770,34 +772,16 @@ void visit_if_statement(CFGBuilderContext* ctx, TSNode node) {
     }
 
     // 3. Генерируем условный переход из текущего блока
-    Operand cond_op = {0};
-    cond_op.kind = OPERAND_VAR;
-    cond_op.data.var.name = strdup(cond_var); // или копия в стеке
-    cond_op.data.var.type = cond_type;
-
-    IRInstruction cond_br = {0};
-    cond_br.opcode = IR_COND_BR;
-    cond_br.data.cond_br.condition = cond_op;
-    strcpy(cond_br.data.cond_br.true_target, then_block->id);
-    strcpy(cond_br.data.cond_br.false_target, else_block->id);
-
-    emit_instruction(ctx, cond_br);
-
+    Operand cond_op = make_var_operand(cond_var, cond_type);
+    emit_cond_br(ctx, cond_op, then_block->id, else_block->id);
     // 4. Обрабатываем тело then
-    BasicBlock* saved_block = ctx->current_block;
     ctx->current_block = then_block;
 
     TSNode consequence = ts_node_child_by_field_name(node, "consequence", 11);
     if (!ts_node_is_null(consequence)) {
         visit_statement(ctx, consequence);
     }
-
-    // Безусловный переход в merge
-    IRInstruction jump_then = {0};
-    jump_then.opcode = IR_JUMP;
-    strcpy(jump_then.data.jump.target, merge_block->id);
-    emit_instruction(ctx, jump_then);
-
+    emit_jump(ctx, merge_block->id);
     // 5. Обрабатываем тело else (если есть)
     ctx->current_block = else_block;
 
@@ -805,13 +789,7 @@ void visit_if_statement(CFGBuilderContext* ctx, TSNode node) {
     if (!ts_node_is_null(alternative)) {
         visit_statement(ctx, alternative);
     }
-
-    // Безусловный переход в merge
-    IRInstruction jump_else = {0};
-    jump_else.opcode = IR_JUMP;
-    strcpy(jump_else.data.jump.target, merge_block->id);
-    emit_instruction(ctx, jump_else);
-
+    emit_jump(ctx, merge_block->id);
     // 6. Переключаемся на merge_block как текущий
     ctx->current_block = merge_block;
 }
@@ -831,21 +809,7 @@ void visit_loop_statement(CFGBuilderContext* ctx, TSNode node) {
 
     // 2. Обрабатываем условие
     char cond_var[64];
-    generate_temp_name(ctx, cond_var, sizeof(cond_var));
-
-    TSNode cond_expr = ts_node_child_by_field_name(node, "condition", 9);
-    if (ts_node_is_null(cond_expr)) {
-        cond_expr = ts_node_child(node, 1); // fallback
-    }
-
-    Type* cond_type = visit_expr(ctx, cond_expr, cond_var);
-
-    // Проверка: условие должно быть bool
-    if (cond_type->kind != TYPE_BOOL) {
-        fprintf(stderr, "Критическая ошибка: условие должно быть bool. Компиляция прервана.\n");
-        exit(1);
-    }
-
+    Type* cond_type = ensure_bool_expr(ctx, ts_node_child_by_field_name(node, "condition", 9), cond_var);
     // 3. Создаём блоки
     BasicBlock* header_block = create_new_block(ctx);  // проверка условия
     BasicBlock* body_block = create_new_block(ctx);    // тело цикла
@@ -856,65 +820,21 @@ void visit_loop_statement(CFGBuilderContext* ctx, TSNode node) {
     }
 
     // 4. Безусловный переход в header из текущего блока
-    IRInstruction jump_to_header = {0};
-    jump_to_header.opcode = IR_JUMP;
-    strcpy(jump_to_header.data.jump.target, header_block->id);
-    emit_instruction(ctx, jump_to_header);
-
+    emit_jump(ctx, header_block->id);
     // 5. Header: условный переход
     ctx->current_block = header_block;
-
-    Operand cond_op = {0};
-    cond_op.kind = OPERAND_VAR;
-    cond_op.data.var.name = strdup(cond_var);
-    cond_op.data.var.type = cond_type;
-
-    IRInstruction cond_br = {0};
-    cond_br.opcode = IR_COND_BR;
-    cond_br.data.cond_br.condition = cond_op;
-
+    Operand cond_op = make_var_operand(cond_var, cond_type);
     if (is_until) {
         // until: повторять, пока условие ЛОЖНО → выход при true
-        strcpy(cond_br.data.cond_br.true_target, exit_block->id);
-        strcpy(cond_br.data.cond_br.false_target, body_block->id);
+        emit_cond_br(ctx, cond_op, exit_block->id, body_block->id);
     } else {
         // while: повторять, пока условие ИСТИННО → выход при false
-        strcpy(cond_br.data.cond_br.true_target, body_block->id);
-        strcpy(cond_br.data.cond_br.false_target, exit_block->id);
+        emit_cond_br(ctx, cond_op, body_block->id, exit_block->id);
     }
-
-    emit_instruction(ctx, cond_br);
-
     // 6. Body: обрабатываем все statement'ы до 'end'
     ctx->current_block = body_block;
-
-    // Сохраняем текущую глубину цикла для break
-    int saved_loop_depth = ctx->loop_depth;
-    push_loop_exit(ctx, exit_block->id); // добавляем exit в стек
-
-    // Обходим тело: все дети после условия до 'end'
-
-    uint32_t child_count = ts_node_child_count(node);
-
-    // Дети: [0]=keyword, [1]=condition, [2...]=statement или 'end'
-    for (uint32_t i = 2; i < child_count; i++) {
-        TSNode stmt = ts_node_child(node, i);
-        if (strcmp(ts_node_type(stmt), "end") == 0) {
-            break;
-        }
-        visit_statement(ctx, stmt);
-    }
-
-    // Восстанавливаем глубину
-    pop_loop_exit(ctx);
-    ctx->loop_depth = saved_loop_depth;
-
-    // Безусловный переход обратно в header
-    IRInstruction jump_back = {0};
-    jump_back.opcode = IR_JUMP;
-    strcpy(jump_back.data.jump.target, header_block->id);
-    emit_instruction(ctx, jump_back);
-
+    visit_statements_with_break_context(ctx, node, 2, exit_block->id);
+    emit_jump(ctx, header_block->id);
     // 7. Выход из цикла
     ctx->current_block = exit_block;
 }
@@ -967,65 +887,25 @@ void visit_repeat_statement(CFGBuilderContext* ctx, TSNode node) {
     if (!body_block || !header_block || !exit_block) {
         return;
     }
-
     // 5. Безусловный переход в тело из текущего блока
-    IRInstruction jump_to_body = {0};
-    jump_to_body.opcode = IR_JUMP;
-    strcpy(jump_to_body.data.jump.target, body_block->id);
-    emit_instruction(ctx, jump_to_body);
-
+    emit_jump(ctx, body_block->id);
     // 6. Обрабатываем тело
     ctx->current_block = body_block;
-
-    // Добавляем exit в стек для break
-    int saved_loop_depth = ctx->loop_depth;
-    push_loop_exit(ctx, exit_block->id);
-
-    visit_statement(ctx, body_stmt);
-
-    pop_loop_exit(ctx);
-    ctx->loop_depth = saved_loop_depth;
-
+    visit_statements_with_break_context(ctx, node, 0, exit_block->id);
     // 7. Переход к заголовку (проверке условия)
-    IRInstruction jump_to_header = {0};
-    jump_to_header.opcode = IR_JUMP;
-    strcpy(jump_to_header.data.jump.target, header_block->id);
-    emit_instruction(ctx, jump_to_header);
-
+    emit_jump(ctx, header_block->id);
     // 8. Header: вычисляем условие
     ctx->current_block = header_block;
-
     char cond_var[64];
-    generate_temp_name(ctx, cond_var, sizeof(cond_var));
-    Type* cond_type = visit_expr(ctx, cond_expr, cond_var);
-
-    // Проверка: только bool
-    if (cond_type->kind != TYPE_BOOL) {
-        fprintf(stderr, "Ошибка: условие repeat-цикла должно быть типа 'bool'.\n");
-        exit(1);
-    }
-
-    Operand cond_op = {0};
-    cond_op.kind = OPERAND_VAR;
-    cond_op.data.var.name = strdup(cond_var);
-    cond_op.data.var.type = cond_type;
-
-    IRInstruction cond_br = {0};
-    cond_br.opcode = IR_COND_BR;
-    cond_br.data.cond_br.condition = cond_op;
-
+    Type* cond_type = ensure_bool_expr(ctx, cond_expr, cond_var);
+    Operand cond_op = make_var_operand(cond_var, cond_type);
     if (is_until) {
         // repeat ... until cond; → выход при true
-        strcpy(cond_br.data.cond_br.true_target, exit_block->id);
-        strcpy(cond_br.data.cond_br.false_target, body_block->id);
+        emit_cond_br(ctx, cond_op, exit_block->id, body_block->id);
     } else {
         // repeat ... while cond; → выход при false
-        strcpy(cond_br.data.cond_br.true_target, body_block->id);
-        strcpy(cond_br.data.cond_br.false_target, exit_block->id);
+        emit_cond_br(ctx, cond_op, body_block->id, exit_block->id);
     }
-
-    emit_instruction(ctx, cond_br);
-
     // 9. Выход из цикла
     ctx->current_block = exit_block;
 }
@@ -1045,10 +925,7 @@ void visit_break_statement(const CFGBuilderContext* ctx, TSNode node) {
     const char* exit_block_id = ctx->loop_exit_stack[ctx->loop_depth - 1];
 
     // 3. Генерируем безусловный переход
-    IRInstruction jump = {0};
-    jump.opcode = IR_JUMP;
-    strcpy(jump.data.jump.target, exit_block_id);
-    emit_instruction(ctx, jump);
+    emit_jump(ctx, exit_block_id);
 }
 
 //Генерирует IR_RET (с выражением или без).
@@ -1088,9 +965,7 @@ void visit_return_statement(CFGBuilderContext* ctx, TSNode node) {
 
     // 3. Случай: return expr;
     char result_var[64];
-    generate_temp_name(ctx, result_var, sizeof(result_var));
-    Type* expr_type = visit_expr(ctx, expr_node, result_var);
-
+    Type* expr_type = eval_to_temp(ctx, expr_node, result_var);
     // Проверка: тип выражения должен соответствовать типу возврата функции
     if (ctx->current_function->return_type->kind == TYPE_VOID) {
         fprintf(stderr, "Ошибка: функция '%s' объявлена как void, но пытается вернуть значение.\n",
@@ -1105,15 +980,10 @@ void visit_return_statement(CFGBuilderContext* ctx, TSNode node) {
     }
 
     // 4. Генерируем IR_RET с значением
-    Operand ret_value = {0};
-    ret_value.kind = OPERAND_VAR;
-    ret_value.data.var.name = strdup(result_var);
-    ret_value.data.var.type = expr_type;
-
     IRInstruction ret = {0};
     ret.opcode = IR_RET;
     ret.data.ret.has_value = true;
-    ret.data.ret.value = ret_value;
+    ret.data.ret.value = make_var_operand(result_var, expr_type);
     emit_instruction(ctx, ret);
 }
 
@@ -1130,8 +1000,7 @@ void visit_expression_statement(CFGBuilderContext* ctx, TSNode node) {
     // Даже если результат не используется, выражение может иметь побочные эффекты
     // (например, вызов функции, присваивание)
     char dummy_result[64];
-    generate_temp_name(ctx, dummy_result, sizeof(dummy_result));
-    visit_expr(ctx, expr, dummy_result);
+    eval_to_temp(ctx, expr, dummy_result);
 }
 
 // Обходит{ ... } или begin ... end — просто последовательность statement.
@@ -1277,6 +1146,7 @@ Type* ast_type_node_to_ir_type(const TSNode type_node, const char* source_code) 
             }
         }
     }
+    return make_int_type(); // fallback
 }
 
 // =================================Контекст циклов (для break)========
@@ -1370,5 +1240,3 @@ CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, const 
 
     return cfg;
 }
-
-
