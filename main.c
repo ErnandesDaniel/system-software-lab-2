@@ -9,7 +9,6 @@
 #include "utils/common-utils/common-utils.h"
 #include "utils/mermaid-utils/mermaid-utils.h"
 
-
 #include "utils/compiler-utils/ast/ast.h"
 
 #include "utils/compiler-utils/cfg/cfg.h"
@@ -17,8 +16,6 @@
 #include "compiler-utils/semantics-analysis/functions/functions.h"
 
 #include "compiler-utils/semantics-analysis/semantics-analysis.h"
-#include "compiler-utils/cfg/cfg.h"
-
 
 
 // Подключаем твою грамматику
@@ -112,12 +109,13 @@ int main(const int argc, char *argv[]) {
     build_global_symbol_table(root_node, source_code);
 
     // Массив для хранения всех CFG
+    CFG* function_cfgs[MAX_FUNCTIONS] = {0}; // инициализируем нулями
 
     // Теперь генерируем файлы для каждой функции
     const uint32_t child_count = ts_node_child_count(root_node);
 
     for (uint32_t i = 0; i < child_count; i++) {
-        CFG* function_cfgs[MAX_FUNCTIONS];
+
 
         TSNode child = ts_node_child(root_node, i);
 
@@ -149,26 +147,27 @@ int main(const int argc, char *argv[]) {
         // Сохраняем граф в массив
         function_cfgs[idx] = func_cfg;
 
+        if (func_cfg) {
+            // Генерируем Mermaid диаграмму из CFG
+            char* func_mermaid = cfg_generate_mermaid(func_cfg);
 
 
-        // if (func_cfg) {
-        //     // Генерируем Mermaid диаграмму из CFG
-        //     char* func_mermaid = cfg_generate_mermaid(func_cfg);
-        //     if (func_mermaid) {
-        //         // Создаем файл для функции
-        //         char filepath[256];
-        //         sprintf(filepath, "%s\\%s.mmd", argv[3], func_name);
-        //         FILE* func_file = fopen(filepath, "w");
-        //         if (func_file) {
-        //             fputs(func_mermaid, func_file);
-        //             fclose(func_file);
-        //         } else {
-        //             fprintf(stderr, "Failed to create file for function %s\n", func_name);
-        //         }
-        //         free(func_mermaid);
-        //     }
-        //     cfg_destroy_graph(func_cfg);
-        // }
+            if (func_mermaid) {
+                // Создаем файл для функции
+                char filepath[256];
+                sprintf(filepath, "%s\\%s.mmd", argv[3], func_name);
+                FILE* func_file = fopen(filepath, "w");
+                if (func_file) {
+                    fputs(func_mermaid, func_file);
+                    fclose(func_file);
+                } else {
+                    fprintf(stderr, "Failed to create file for function %s\n", func_name);
+                }
+                free(func_mermaid);
+            }
+
+            cfg_destroy_graph(func_cfg);
+        }
     }
 
     ts_tree_delete(tree);

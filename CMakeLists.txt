@@ -6,9 +6,18 @@ set(CMAKE_C_STANDARD 17)
 # Указываем, какие файлы компилировать
 add_executable(system_software_lab_2
         main.c
+
         utils/common-utils/common-utils.c
         utils/mermaid-utils/mermaid-utils.c
-        utils/cfg-utils/cfg-utils.c
+
+        utils/compiler-utils/ast/ast.c
+        utils/compiler-utils/cfg/cfg.c
+
+        utils/compiler-utils/semantics-analysis/semantics-analysis.c
+        utils/compiler-utils/semantics-analysis/types/types.c
+        utils/compiler-utils/semantics-analysis/symbol/symbol.c
+        utils/compiler-utils/semantics-analysis/functions/functions.c
+
         lib/tree-sitter/lib/src/lib.c # библиотека tree-sitter
         src/parser.c # сгенерированный для языка mylang парсер
 )
