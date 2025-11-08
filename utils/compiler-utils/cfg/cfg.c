@@ -101,6 +101,34 @@ void generate_temp_name(CFGBuilderContext* ctx, char* buffer, const size_t buffe
 }
 
 
+// Проверка bool в условных выражениях
+Type* ensure_bool_expr(CFGBuilderContext* ctx, TSNode expr, char* result_var) {
+    Type* t = visit_expr(ctx, expr, result_var);
+    if (t->kind != TYPE_BOOL) {
+        fprintf(stderr, "Ошибка: выражение должно быть типа bool.\n");
+        exit(1);
+    }
+    return t;
+}
+
+// вычисляет выражение и сохраняет его результат во временную переменную, имя которой возвращается в out_temp
+Type* eval_to_temp(CFGBuilderContext* ctx, TSNode expr, char* out_temp) {
+    generate_temp_name(ctx, out_temp, 64);
+    return visit_expr(ctx, expr, out_temp);
+}
+
+//обрабатывает последовательность операторов (statement'ов) внутри цикла, временно добавляя точку выхода в стек циклов, чтобы break знал, куда прыгать.
+void visit_statements_with_break_context(CFGBuilderContext* ctx, TSNode parent, uint32_t start_idx, const char* exit_id) {
+    push_loop_exit(ctx, exit_id);
+    uint32_t count = ts_node_child_count(parent);
+    for (uint32_t i = start_idx; i < count; i++) {
+        TSNode stmt = ts_node_child(parent, i);
+        if (strcmp(ts_node_type(stmt), "end") == 0) break;
+        visit_statement(ctx, stmt);
+    }
+    pop_loop_exit(ctx);
+}
+
 //======================Управление потоком (блоками и переходами)===========================
 
 // Создание и возврат ссылки на новый блок
