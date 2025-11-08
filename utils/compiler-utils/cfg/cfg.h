@@ -80,7 +80,11 @@ typedef enum {
     IR_JUMP,     // Безусловный переход к указанному блоку (аналог goto)
     //IR_COND_BR — слово BR — это сокращение от «branch»
     IR_COND_BR,  // Условный переход: если условие истинно → блок A, иначе → блок B
-    IR_RET       // Возврат из функции (с значением или без)
+    IR_RET,       // Возврат из функции (с значением или без)
+
+    // === Операции с массивами ===
+    IR_LOAD,   // Загрузка элемента: result = array[index]
+    IR_SLICE   // Создание среза: result = array[start..end]
 } IROpcode;
 
 
@@ -141,6 +145,24 @@ typedef struct IRInstruction {
             Type* result_type;    // Тип результата (должен соответствовать операции и операнду)
             Operand operand;      // Единственный входной операнд (например, переменная "x" или константа)
         } unary;
+
+        // Загрузка элемента массива: result = array[index]
+        struct {
+            char result[64];
+            Type* result_type;
+            char array[64];  // имя переменной-массива
+            char index[64];  // имя переменной-индекса
+        } load;
+
+        // Срез массива: result = array[start..end]
+        struct {
+            char result[64];
+            Type* result_type;
+            char array[64];
+            char start[64];
+            char end[64];    // может быть пустым
+            bool has_end;
+        } slice;
     } data;
 } IRInstruction;
 
