@@ -657,10 +657,6 @@
         {
           "type": "builtin_type",
           "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
         }
       ]
     }
