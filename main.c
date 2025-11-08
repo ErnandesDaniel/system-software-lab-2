@@ -8,7 +8,7 @@
 #include "src/tree_sitter/parser.h"
 #include "utils/common-utils/common-utils.h"
 #include "utils/mermaid-utils/mermaid-utils.h"
-#include "utils/cfg-utils/cfg.h"
+#include "utils/cfg-utils/cfg-utils.h"
 
 // Подключаем твою грамматику
 TSLanguage *tree_sitter_mylang(); // Объявляем функцию из parser.c
@@ -56,8 +56,9 @@ int main(int argc, char *argv[]) {
 
     TSTree *tree = ts_parser_parse_string(parser, NULL, content, file_size);
 
+    const TSNode root_node = ts_tree_root_node(tree);
+
     // Проверяем на ошибки разбора
-    TSNode root_node = ts_tree_root_node(tree);
     if (ts_node_has_error(root_node)) {
         // Выводим конкретные ошибки
         fprintf(stderr, "Parsing errors:\n");
@@ -96,43 +97,59 @@ int main(int argc, char *argv[]) {
     free(mermaid_str);
 
     // Теперь генерируем файлы для каждой функции
-    uint32_t child_count = ts_node_child_count(root_node);
+    const uint32_t child_count = ts_node_child_count(root_node);
+
     for (uint32_t i = 0; i < child_count; i++) {
+
         TSNode child = ts_node_child(root_node, i);
+
         if (strcmp(ts_node_type(child), "source_item") == 0) {
+
             // Находим сигнатуру функции
-            TSNode signature = ts_node_child_by_field_name(child, "signature", strlen("signature"));
+            const TSNode signature = ts_node_child_by_field_name(child, "signature", strlen("signature"));
+
             if (!ts_node_is_null(signature)) {
-                TSNode func_name_node = ts_node_child_by_field_name(signature, "name", strlen("name"));
+
+                const TSNode func_name_node = ts_node_child_by_field_name(signature, "name", strlen("name"));
+
                 if (!ts_node_is_null(func_name_node)) {
-                    uint32_t start = ts_node_start_byte(func_name_node);
-                    uint32_t end = ts_node_end_byte(func_name_node);
-                    size_t len = end - start;
+
+                    const uint32_t start = ts_node_start_byte(func_name_node);
+
+                    const uint32_t end = ts_node_end_byte(func_name_node);
+
+                    const size_t len = end - start;
+
                     char* func_name = malloc(len + 1);
+
                     if (func_name) {
+
                         memcpy(func_name, content + start, len);
+
                         func_name[len] = '\0';
 
                         // Строим CFG для этой функции
-                        CFGGraph* func_cfg = cfg_build_from_ast(child, content);
-                        if (func_cfg) {
-                            // Генерируем Mermaid диаграмму из CFG
-                            char* func_mermaid = cfg_generate_mermaid(func_cfg);
-                            if (func_mermaid) {
-                                // Создаем файл для функции
-                                char filepath[256];
-                                sprintf(filepath, "%s\\%s.mmd", argv[3], func_name);
-                                FILE* func_file = fopen(filepath, "w");
-                                if (func_file) {
-                                    fputs(func_mermaid, func_file);
-                                    fclose(func_file);
-                                } else {
-                                    fprintf(stderr, "Failed to create file for function %s\n", func_name);
-                                }
-                                free(func_mermaid);
-                            }
-                            cfg_destroy_graph(func_cfg);
-                        }
+                        CFG* func_cfg = cfg_build_from_ast(child, content);
+
+                        // if (func_cfg) {
+                        //     // Генерируем Mermaid диаграмму из CFG
+                        //     char* func_mermaid = cfg_generate_mermaid(func_cfg);
+                        //     if (func_mermaid) {
+                        //         // Создаем файл для функции
+                        //         char filepath[256];
+                        //         sprintf(filepath, "%s\\%s.mmd", argv[3], func_name);
+                        //         FILE* func_file = fopen(filepath, "w");
+                        //         if (func_file) {
+                        //             fputs(func_mermaid, func_file);
+                        //             fclose(func_file);
+                        //         } else {
+                        //             fprintf(stderr, "Failed to create file for function %s\n", func_name);
+                        //         }
+                        //         free(func_mermaid);
+                        //     }
+                        //     cfg_destroy_graph(func_cfg);
+                        // }
+
                         free(func_name);
                     }
                 }
