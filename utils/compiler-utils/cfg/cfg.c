@@ -30,16 +30,11 @@ typedef struct CFGBuilderContext {
 
     int loop_depth;
 
-
     // Информация о текущей функции (из symbol table)
     FunctionInfo* current_function;
 
-
     // Локальные переменные текущей функции
-    Symbol local_vars[64];
-    int local_count;
-
-
+    SymbolTable local_vars;
 
 } CFGBuilderContext;
 
@@ -51,17 +46,6 @@ void generate_temp_name(CFGBuilderContext* ctx, char* buffer, const size_t buffe
 
     snprintf(buffer, buffer_size, "t%d", ctx->temp_counter++);
 }
-
-// Генерация имени базового блока вида "BB_42"
-void generate_block_name(CFGBuilderContext* ctx, char* buffer, const size_t buffer_size) {
-
-    if (buffer_size == 0) return;
-
-    snprintf(buffer, buffer_size, "BB_%d", ctx->block_counter++);
-}
-
-
-
 
 //============================Обработка операторов (statements)==========================
 
@@ -105,11 +89,6 @@ Operand make_const_operand_bool(bool val);
 
 //Для строковых литералов.
 Operand make_const_operand_string(const char* str);
-
-
-//Определяет тип выражения (пока можно заглушку — TYPE_INT или TYPE_BOOL).
-Type* get_expr_type(TSNode expr_node, const char* source);
-
 
 //=========================================Обработка выражений (expressions)=============
 
@@ -167,7 +146,6 @@ void emit_jump(CFGBuilderContext* ctx, const char* target);
 
 //Генерирует IR_COND_BR
 void emit_cond_br(CFGBuilderContext* ctx, Operand cond, const char* true_target, const char* false_target);
-
 
 //=================================== Типы и память=========================================
 
@@ -227,7 +205,14 @@ Type* ast_type_node_to_ir_type(const TSNode type_node, const char* source_code) 
 
                 const TSNode elem_type_node = ts_node_child(type_node, 0);
 
-                t->data.array_info.element_type = ast_type_node_to_ir_type(elem_type_node, source_code);
+                Type* elem_type = ast_type_node_to_ir_type(elem_type_node, source_code);
+
+                if (!elem_type) {
+                    free(t);
+                    return NULL;
+                }
+
+                t->data.array_info.element_type = elem_type;
 
                 uint32_t size = 0;
 
@@ -256,12 +241,6 @@ Type* ast_type_node_to_ir_type(const TSNode type_node, const char* source_code) 
 
 
 // =================================Контекст циклов (для break)========
-// Нужно добавить
-
-//Добавь в CFGBuilderContext
-//BlockId loop_exit_stack[32];
-//int loop_depth;
-
 
 // При входе в цикл.
 void push_loop_exit(CFGBuilderContext* ctx, const char* exit_id);
