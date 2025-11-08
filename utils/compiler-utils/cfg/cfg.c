@@ -101,11 +101,6 @@ void generate_temp_name(CFGBuilderContext* ctx, char* buffer, const size_t buffe
 }
 
 
-
-
-
-
-
 //======================Управление потоком (блоками и переходами)===========================
 
 // Создание и возврат ссылки на новый блок
@@ -124,32 +119,96 @@ BasicBlock* create_new_block(CFGBuilderContext* ctx) {
     return block;
 }
 
-//Добавляет target_id в successors[block]
-void add_successor(BasicBlock* block, const char* target_id);
+// Добавляет target_id в successors[block]
+void add_successor(BasicBlock* block, const char* target_id) {
+    if (!block || !target_id) return;
+    if (block->num_successors >= MAX_SUCCESSORS) return; // защита от переполнения
 
-//Генерирует IR_JUMP в текущий блок.
-void emit_jump(CFGBuilderContext* ctx, const char* target);
+    // Проверяем, нет ли уже такого преемника (опционально)
+    for (size_t i = 0; i < block->num_successors; i++) {
+        if (strcmp(block->successors[i], target_id) == 0) {
+            return; // уже есть
+        }
+    }
+
+    strcpy(block->successors[block->num_successors], target_id);
+    block->num_successors++;
+}
+
+// Генерирует IR_JUMP в текущий блок
+void emit_jump(CFGBuilderContext* ctx, const char* target) {
+    if (!ctx || !ctx->current_block || !target) return;
+
+    IRInstruction jump = {0};
+    jump.opcode = IR_JUMP;
+    strcpy(jump.data.jump.target, target);
+    emit_instruction(ctx, jump);
+
+    // Опционально: добавить target как преемника текущего блока
+    add_successor(ctx->current_block, target);
+}
 
 //Генерирует IR_COND_BR
-void emit_cond_br(CFGBuilderContext* ctx, Operand cond, const char* true_target, const char* false_target);
+void emit_cond_br(CFGBuilderContext* ctx, Operand cond, const char* true_target, const char* false_target) {
+    if (!ctx || !ctx->current_block || !true_target || !false_target) return;
 
+    IRInstruction cond_br = {0};
+    cond_br.opcode = IR_COND_BR;
+    cond_br.data.cond_br.condition = cond;
+    strcpy(cond_br.data.cond_br.true_target, true_target);
+    strcpy(cond_br.data.cond_br.false_target, false_target);
+    emit_instruction(ctx, cond_br);
+
+    // Добавляем оба блока как преемников
+    add_successor(ctx->current_block, true_target);
+    add_successor(ctx->current_block, false_target);
+}
 
 //=====================Вспомогательные функции для выражений============================
 
-//Создаёт OPERAND_VAR
-Operand make_var_operand(const char* name, Type* type);
+// Создаёт OPERAND_VAR
+Operand make_var_operand(const char* name, Type* type) {
+    Operand op = {0};
+    op.kind = OPERAND_VAR;
+    if (name) {
+        op.data.var.name = strdup(name); // или выдели в пуле
+    } else {
+        op.data.var.name = NULL;
+    }
+    op.data.var.type = type;
+    return op;
+}
 
+// Создаёт OPERAND_CONST для целых чисел
+Operand make_const_operand_int(int64_t val) {
+    Operand op = {0};
+    op.kind = OPERAND_CONST;
+    op.data.const_val.type = make_int_type();
+    op.data.const_val.value.integer = (int32_t)val; // или int64_t, если ConstValue поддерживает
+    return op;
+}
 
-//Создаёт OPERAND_CONST  для чисел
-Operand make_const_operand_int(int64_t val);
+// Для true/false
+Operand make_const_operand_bool(bool val) {
+    Operand op = {0};
+    op.kind = OPERAND_CONST;
+    op.data.const_val.type = make_bool_type();
+    op.data.const_val.value.integer = val ? 1 : 0;
+    return op;
+}
 
-//Для true/false
-Operand make_const_operand_bool(bool val);
-
-
-//Для строковых литералов.
-Operand make_const_operand_string(const char* str);
-
+// Для строковых литералов
+Operand make_const_operand_string(const char* str) {
+    Operand op = {0};
+    op.kind = OPERAND_CONST;
+    op.data.const_val.type = make_string_type();
+    if (str) {
+        op.data.const_val.value.string = strdup(str); // важно: strdup!
+    } else {
+        op.data.const_val.value.string = strdup("");
+    }
+    return op;
+}
 
 //=========================================Обработка выражений (expressions)=============
 
@@ -1195,14 +1254,22 @@ Type* ast_type_node_to_ir_type(const TSNode type_node, const char* source_code) 
 // =================================Контекст циклов (для break)========
 
 // При входе в цикл.
-void push_loop_exit(CFGBuilderContext* ctx, const char* exit_id);
+void push_loop_exit(CFGBuilderContext* ctx, const char* exit_id) {
+    if (ctx->loop_depth < 32) {
+        strcpy(ctx->loop_exit_stack[ctx->loop_depth], exit_id);
+        ctx->loop_depth++;
+    }
+}
 
 // При выходе из цикла.
-void pop_loop_exit(CFGBuilderContext* ctx);
+void pop_loop_exit(CFGBuilderContext* ctx) {
+    if (ctx->loop_depth > 0) ctx->loop_depth--;
+}
 
 //Для break
-const char* current_loop_exit(CFGBuilderContext* ctx);
-
+const char* current_loop_exit(CFGBuilderContext* ctx) {
+    return (ctx->loop_depth > 0) ? ctx->loop_exit_stack[ctx->loop_depth - 1] : NULL;
+}
 
 // Обрабатывает тело функции (все statement'ы внутри source_item)
 void visit_source_item(CFGBuilderContext* ctx, const TSNode node) {
@@ -1275,27 +1342,5 @@ CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, const 
 
     return cfg;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
