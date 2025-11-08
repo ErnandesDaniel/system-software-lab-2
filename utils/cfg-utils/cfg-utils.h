@@ -15,7 +15,6 @@ typedef enum {
     TYPE_STRING,    // 'string'
     TYPE_VOID,      // для функций
     TYPE_ARRAY,     // массив
-    TYPE_NAMED       // пользовательский тип (например, MyType); требует таблицы типов
 } TypeKind;
 
 typedef struct Type {
@@ -170,11 +169,15 @@ typedef struct IRInstruction {
 #define MAX_SUCCESSORS 4      // максимальное число исходящих переходов (обычно 1 или 2)
 
 typedef struct BasicBlock {
+
     BlockId id;                              // уникальный ID блока: "BB_0"
+
     IRInstruction instructions[MAX_INSTRUCTIONS]; //массив IR-инструкций блока
+
     size_t num_instructions; //сколько инструкций реально используется в массиве, чтобы не обрабатывать "мусор" в конце массива
 
     BlockId successors[MAX_SUCCESSORS]; // список ID блоков, в которые можно перейти после выполнения этого блока (это рёбра графа потока управления)
+
     size_t num_successors; // сколько преемников реально есть.
 } BasicBlock;
 
@@ -186,7 +189,11 @@ typedef struct BasicBlock {
 #define MAX_BLOCKS 1024  // достаточно для одной функции
 
 typedef struct CFG {
+
     BlockId entry_block_id;    // с какого блока начинать выполнение
+
     BasicBlock blocks[MAX_BLOCKS]; //массив блоков
+
     size_t num_blocks; //сколько реально блоков используется
+
 } CFG;
