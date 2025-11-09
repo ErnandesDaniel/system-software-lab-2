@@ -1,60 +1,7 @@
-def test_loop_while ()
-
-while i<5
-
-i=i+1;
-
-end
-
-
-a=7;
-
-
-end
-
-
-
-def test_if ()
-
-if a>5 then
+def test_expression ()
 
 i=1;
 
-
 a=7;
 
 end
-
-
-
-
-
-
-def test_if_then ()
-
-if a>5 then
-
-i=1;
-
-else
-
-i=4;
-
-
-a=7;
-
-end
-
-
-
-
-
-
-
-
-
-
-
-
-
-

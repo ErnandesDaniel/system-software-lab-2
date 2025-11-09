@@ -1,5 +1,6 @@
 #include <string.h>
 #include "../lib/tree-sitter/lib/include/tree_sitter/api.h"
+#include "compiler-utils/ast/ast.h"
 #include "functions/functions.h"
 #include "types/types.h"
 #include "symbol/symbol.h"
@@ -125,7 +126,7 @@ static void process_function(TSNode func_item, const char* source) {
     const TSNode sig_node = ts_node_child_by_field_name(func_item, "signature", 9);
     if (ts_node_is_null(sig_node)) return;
 
-    TSNode name_node = ts_node_child_by_field_name(sig_node, "name", 4);
+    const TSNode name_node = ts_node_child_by_field_name(sig_node, "name", 4);
     if (ts_node_is_null(name_node)) return;
 
     char func_name[64];
@@ -151,10 +152,6 @@ static void process_function(TSNode func_item, const char* source) {
     const TSNode params_node = ts_node_child_by_field_name(sig_node, "parameters", 10);
 
     process_parameters(params_node, &func->params, source);
-
-
-
-
 }
 
 // Основная функция: проход по AST и заполнение global_functions
