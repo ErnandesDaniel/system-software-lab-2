@@ -1,3 +1,6 @@
+#ifndef CFG_EXPRESSION_H
+#define CFG_EXPRESSION_H
+
 #include "types.h"
 // Обработка выражений
 Type* visit_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
@@ -15,6 +18,8 @@ Operand make_var_operand(const char* name, Type* type);
 Operand make_const_operand_int(int64_t val);
 Operand make_const_operand_bool(bool val);
 Operand make_const_operand_string(const char* str);
+
+#endif
 
 
 

@@ -1,4 +1,7 @@
 
+#ifndef CFG_STATEMENT_H
+#define CFG_STATEMENT_H
+
 #include "types.h"
 
 // Обработка операторов
@@ -10,3 +13,5 @@ void visit_break_statement(const CFGBuilderContext* ctx, TSNode node);
 void visit_return_statement(CFGBuilderContext* ctx, TSNode node);
 void visit_expression_statement(CFGBuilderContext* ctx, TSNode node);
 void visit_block_statement(CFGBuilderContext* ctx, TSNode node);
+
+#endif

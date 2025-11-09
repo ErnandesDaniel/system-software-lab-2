@@ -1,4 +1,9 @@
+#ifndef CFG_TYPES_H
+#define CFG_TYPES_H
+
 #include "../semantics-analysis/functions.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 //uint32_t → требует <stdint.h>
 //bool → требует <stdbool.h>
@@ -222,3 +227,5 @@ typedef struct CFGBuilderContext {
     SymbolTable local_vars;
 
 } CFGBuilderContext;
+
+#endif

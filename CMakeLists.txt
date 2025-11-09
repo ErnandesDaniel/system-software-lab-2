@@ -12,11 +12,16 @@ add_executable(system_software_lab_2
 
         utils/compiler-utils/ast/ast.c
         utils/compiler-utils/cfg/cfg.c
+        utils/compiler-utils/cfg/expressions.c
+        utils/compiler-utils/cfg/mermaid.c
+        utils/compiler-utils/cfg/statements.c
+        utils/compiler-utils/cfg/types.c
+        utils/compiler-utils/cfg/utils.c
 
         utils/compiler-utils/semantics-analysis/semantics-analysis.c
-        utils/compiler-utils/semantics-analysis/types/types.c
-        utils/compiler-utils/semantics-analysis/symbol/symbol.c
-        utils/compiler-utils/semantics-analysis/functions/functions.c
+        utils/compiler-utils/semantics-analysis/types.c
+        utils/compiler-utils/semantics-analysis/symbol.c
+        utils/compiler-utils/semantics-analysis/functions.c
 
         lib/tree-sitter/lib/src/lib.c # библиотека tree-sitter
         src/parser.c # сгенерированный для языка mylang парсер
