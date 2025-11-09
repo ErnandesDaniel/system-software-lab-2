@@ -254,6 +254,7 @@ Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var){
 
     // Обрабатываем присваивание отдельно (оно не вычисляет новое значение, а меняет переменную)
     if (strcmp(op_text, "=") == 0) {
+
         // Левый операнд должен быть идентификатором
         if (strcmp(ts_node_type(left), "identifier") != 0) {
             fprintf(stderr, "Ошибка: левый операнд присваивания должен быть идентификатором.\n");
@@ -267,8 +268,11 @@ Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var){
         // Обрабатываем правый операнд
         char right_temp[64];
         Type* right_type = eval_to_temp(ctx, right, right_temp);
+
         // Добавляем переменную в локальную область (если новая)
         Symbol* existing = symbol_table_lookup(&ctx->local_vars, var_name);
+
+
         if (!existing) {
             // Новая переменная — тип выводится из правого операнда
             symbol_table_add(&ctx->local_vars, var_name, right_type);
@@ -349,6 +353,9 @@ Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var){
     compute.data.compute.operands[1] = make_var_operand(right_temp, right_type);
     compute.data.compute.num_operands = 2;
     emit_instruction(ctx, compute);
+
+
+
     return result_type;
 }
 
@@ -993,15 +1000,17 @@ void visit_expression_statement(CFGBuilderContext* ctx, TSNode node) {
     // expression_statement: expr ';'
 
     // Выражение — первый ребёнок (до ';')
-    const TSNode expr = ts_node_child(node, 0);
-    if (ts_node_is_null(expr)) {
+    const TSNode expr_node = ts_node_child(node, 0);
+    if (ts_node_is_null(expr_node)) {
         return; // пустой оператор
     }
+
+    const TSNode expression_node = ts_node_child(expr_node, 0);
 
     // Даже если результат не используется, выражение может иметь побочные эффекты
     // (например, вызов функции, присваивание)
     char dummy_result[64];
-    eval_to_temp(ctx, expr, dummy_result);
+    eval_to_temp(ctx, expression_node, dummy_result);
 }
 
 // Обходит{ ... } или begin ... end — просто последовательность statement.
@@ -1028,6 +1037,14 @@ void visit_block_statement(CFGBuilderContext* ctx, const TSNode node) {
 //Диспетчер: вызывает нужную функцию в зависимости от типа узла (if_statement, loop_statement, и т.д.).
 void visit_statement(CFGBuilderContext* ctx, const TSNode node) {
     const char* node_type = ts_node_type(node);
+
+    if (strcmp(node_type, "statement") == 0) {
+
+        //У statement есть дочерний элемент, который и является выражением, которое мы должны разобрать
+        const TSNode first_children = ts_node_child(node, 0);
+
+        visit_statement(ctx, first_children);
+    }
 
     if (strcmp(node_type, "if_statement") == 0) {
         visit_if_statement(ctx, node);
@@ -1193,6 +1210,10 @@ void visit_source_item(CFGBuilderContext* ctx, const TSNode node) {
 
         // Обрабатываем statement
         visit_statement(ctx, stmt);
+
+
+
+
     }
 }
 
