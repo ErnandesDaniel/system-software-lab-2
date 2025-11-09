@@ -442,7 +442,7 @@ Type* visit_identifier_expr(CFGBuilderContext* ctx, TSNode node, char* result_va
 
     if (!sym) {
         // Переменная не найдена — ошибка
-        fprintf(stderr, "Ошибка: неизвестная переменная '%s'.\n", name);
+        fprintf(stderr, "Error: unknown variable '%s'.\n", name);
 
         // Заглушка: создаём временную переменную с типом int
         // (чтобы не сломать генерацию IR)
