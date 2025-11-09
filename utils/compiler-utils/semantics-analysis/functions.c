@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "functions.h"
-#include "../types/types.h"
+#include "types.h"
 
 // Определение глобальных переменных
 FunctionInfo global_functions[MAX_FUNCTIONS];

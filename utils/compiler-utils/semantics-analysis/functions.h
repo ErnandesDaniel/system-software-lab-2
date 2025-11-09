@@ -1,7 +1,7 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 
-#include "../symbol/symbol.h"  // потому что FunctionInfo содержит SymbolTable
+#include "symbol.h"
 
 #define MAX_FUNCTIONS 64
 

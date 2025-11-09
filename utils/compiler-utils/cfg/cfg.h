@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "compiler-utils/semantics-analysis/functions/functions.h"
+#include "../semantics-analysis/functions.h"
 
 //uint32_t → требует <stdint.h>
 //bool → требует <stdbool.h>

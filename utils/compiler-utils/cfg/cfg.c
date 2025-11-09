@@ -9,7 +9,7 @@
 #include "cfg.h"
 
 #include "compiler-utils/ast/ast.h"
-#include "compiler-utils/semantics-analysis/functions/functions.h"
+#include "../semantics-analysis/functions.h"
 
 TSLanguage *tree_sitter_mylang(); // Объявляем функцию из parser.c
 

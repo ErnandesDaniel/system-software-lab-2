@@ -2,7 +2,7 @@
 #define SYMBOL_H
 
 #include <stdbool.h>
-#include "../types/types.h"
+#include "types.h"
 
 typedef struct Symbol {
     char name[64]; // имя: "x", "counter", "result"

@@ -1,9 +1,9 @@
 #include <string.h>
 #include "../lib/tree-sitter/lib/include/tree_sitter/api.h"
 #include "compiler-utils/ast/ast.h"
-#include "functions/functions.h"
-#include "types/types.h"
-#include "symbol/symbol.h"
+#include "functions.h"
+#include "types.h"
+#include "symbol.h"
 
 // Вспомогательная функция: преобразует узел типа в Type*
 static Type* parse_type_node(const TSNode type_node, const char* source) {

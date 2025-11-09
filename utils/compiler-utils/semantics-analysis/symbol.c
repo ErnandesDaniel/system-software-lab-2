@@ -2,7 +2,7 @@
 #include <stdbool.h>
 
 #include "symbol.h"
-#include "../types/types.h"
+#include "types.h"
 
 void symbol_table_init(SymbolTable* table) {
     if (!table) return;

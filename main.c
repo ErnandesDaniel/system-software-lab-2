@@ -13,7 +13,7 @@
 
 #include "utils/compiler-utils/cfg/cfg.h"
 
-#include "compiler-utils/semantics-analysis/functions/functions.h"
+#include "utils/compiler-utils/semantics-analysis/functions.h"
 
 #include "compiler-utils/semantics-analysis/semantics-analysis.h"
 
