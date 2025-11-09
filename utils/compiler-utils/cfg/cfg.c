@@ -8,78 +8,11 @@
 
 #include "cfg.h"
 
-#include "compiler-utils/ast/ast.h"
-#include "../semantics-analysis/functions.h"
-
 TSLanguage *tree_sitter_mylang(); // Объявляем функцию из parser.c
 
-// Вспомогательная структура контекста построения графа потока управления
-typedef struct CFGBuilderContext {
 
-    CFG* cfg; // Ссылка на текущий объект графа управления
 
-    BasicBlock* current_block; //Ссылка на текущий обрабатываемый блок
 
-    const char* source_code;   // исходный текст всего файла с кодом
-
-    int temp_counter;   //Счётчик для генерации уникальных временных имён переменных (имен типа t0, t1, t2...)
-
-    int block_counter;  // Счётчик для генерации уникальных имён базовых блоков (имен типа BB_0, BB_1...)
-
-    // Для break
-    BlockId loop_exit_stack[32];
-
-    int loop_depth;
-
-    // Информация о текущей функции (из symbol table)
-    FunctionInfo* current_function;
-
-    // Локальные переменные текущей функции
-    SymbolTable local_vars;
-
-} CFGBuilderContext;
-
-// ==================== Прототипы всех функций ====================
-
-// Обработка операторов
-void visit_statement(CFGBuilderContext* ctx, TSNode node);
-void visit_if_statement(CFGBuilderContext* ctx, TSNode node);
-void visit_loop_statement(CFGBuilderContext* ctx, TSNode node);
-void visit_repeat_statement(CFGBuilderContext* ctx, TSNode node);
-void visit_break_statement(const CFGBuilderContext* ctx, TSNode node);
-void visit_return_statement(CFGBuilderContext* ctx, TSNode node);
-void visit_expression_statement(CFGBuilderContext* ctx, TSNode node);
-void visit_block_statement(CFGBuilderContext* ctx, TSNode node);
-
-// Обработка выражений
-Type* visit_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-Type* visit_unary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-Type* visit_parenthesized_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-Type* visit_call_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-Type* visit_slice_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-Type* visit_identifier_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);
-
-// Вспомогательные функции
-Operand make_var_operand(const char* name, Type* type);
-Operand make_const_operand_int(int64_t val);
-Operand make_const_operand_bool(bool val);
-Operand make_const_operand_string(const char* str);
-
-void push_loop_exit(CFGBuilderContext* ctx, const char* exit_id);
-void pop_loop_exit(CFGBuilderContext* ctx);
-const char* current_loop_exit(CFGBuilderContext* ctx);
-
-void add_successor(BasicBlock* block, const char* target_id);
-void emit_jump(CFGBuilderContext* ctx, const char* target);
-void emit_cond_br(CFGBuilderContext* ctx, Operand cond, const char* true_target, const char* false_target);
-Type* ensure_bool_expr(CFGBuilderContext* ctx, TSNode expr, char* result_var);
-Type* eval_to_temp(CFGBuilderContext* ctx, TSNode expr, char* out_temp);
-void visit_statements_with_break_context(CFGBuilderContext* ctx, TSNode parent, uint32_t start_idx, const char* exit_id);
-void visit_source_item(CFGBuilderContext* ctx, TSNode node);
-
-// ===============================================================
 
 
 

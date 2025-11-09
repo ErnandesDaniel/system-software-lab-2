@@ -196,3 +196,29 @@ typedef struct CFG {
     size_t num_blocks; //сколько реально блоков используется
 
 } CFG;
+
+// Вспомогательная структура контекста построения графа потока управления
+typedef struct CFGBuilderContext {
+
+    CFG* cfg; // Ссылка на текущий объект графа управления
+
+    BasicBlock* current_block; //Ссылка на текущий обрабатываемый блок
+
+    const char* source_code;   // исходный текст всего файла с кодом
+
+    int temp_counter;   //Счётчик для генерации уникальных временных имён переменных (имен типа t0, t1, t2...)
+
+    int block_counter;  // Счётчик для генерации уникальных имён базовых блоков (имен типа BB_0, BB_1...)
+
+    // Для break
+    BlockId loop_exit_stack[32];
+
+    int loop_depth;
+
+    // Информация о текущей функции (из symbol table)
+    FunctionInfo* current_function;
+
+    // Локальные переменные текущей функции
+    SymbolTable local_vars;
+
+} CFGBuilderContext;

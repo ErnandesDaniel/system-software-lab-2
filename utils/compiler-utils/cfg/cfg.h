@@ -2,7 +2,7 @@
 #define CFG_H
 
 #include "../semantics-analysis/functions.h"
-
+#include "types.h"
 
 CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, TSNode root_node);
 
