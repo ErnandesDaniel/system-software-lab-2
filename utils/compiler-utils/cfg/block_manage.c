@@ -6,21 +6,31 @@
 
 #include "types.h"
 #include "block_manage.h"
+
+#include <string.h>
 // Создание и возврат ссылки на новый блок
 BasicBlock* create_new_block(CFGBuilderContext* ctx) {
-
-    if (ctx->cfg->num_blocks >= MAX_BLOCKS) return NULL;
+    if (ctx->cfg->num_blocks >= MAX_BLOCKS) {
+        return NULL;
+    }
 
     BasicBlock* block = &ctx->cfg->blocks[ctx->cfg->num_blocks++];
 
+    // Обнуляем всю структуру блока (включая массивы instructions и successors)
+    memset(block, 0, sizeof(BasicBlock));
+
+    // Теперь безопасно устанавливаем ID
     snprintf(block->id, sizeof(block->id), "BB_%d", ctx->block_counter++);
 
-    block->num_instructions = 0;
-
-    block->num_successors = 0;
+    // num_instructions и num_successors уже 0 благодаря memset,
+    // но можно оставить для ясности (хотя это избыточно)
+    // block->num_instructions = 0;
+    // block->num_successors = 0;
 
     return block;
 }
+
+
 
 //Добавление инструкции в текущий блок
 void emit_instruction(const CFGBuilderContext* ctx, const IRInstruction inst) {

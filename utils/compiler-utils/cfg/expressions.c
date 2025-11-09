@@ -77,13 +77,24 @@ Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var){
     // Обрабатываем присваивание отдельно (оно не вычисляет новое значение, а меняет переменную)
     if (strcmp(op_text, "=") == 0) {
 
+        const char* left_type=ts_node_type(left);
+
         // Левый операнд должен быть идентификатором
-        if (strcmp(ts_node_type(left), "identifier") != 0) {
+        if (strcmp(left_type, "expr") != 0) {
+            fprintf(stderr, "Error: left operand of assignment must be an expr->identifier.\n");
+        }
+
+        TSNode left_expr_child_node = ts_node_child(left, 0);
+
+        const char* left_expr_child_node_type=ts_node_type(left_expr_child_node);
+
+        // Левый операнд должен быть идентификатором
+        if (strcmp(left_expr_child_node_type, "identifier") != 0) {
             fprintf(stderr, "Error: left operand of assignment must be an identifier.\n");
         }
 
         char var_name[64];
-        get_node_text(left, ctx->source_code, var_name, sizeof(var_name));
+        get_node_text(left_expr_child_node, ctx->source_code, var_name, sizeof(var_name));
 
         // Обрабатываем правый операнд
         char right_temp[64];
@@ -448,22 +459,26 @@ Type* visit_identifier_expr(CFGBuilderContext* ctx, TSNode node, char* result_va
 
 //Преобразует литерал в константу → генерирует временную переменную с IR_ASSIGN константы.
 Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) {
-    const char* node_type = ts_node_type(node);
+
+    const TSNode literal_node=ts_node_child(node, 0);
+
+    const char* literal_type = ts_node_type(literal_node);
+
     char literal_text[256];
-    get_node_text(node, ctx->source_code, literal_text, sizeof(literal_text));
+    get_node_text(literal_node, ctx->source_code, literal_text, sizeof(literal_text));
 
     // === Целочисленные литералы ===
-    if (strcmp(node_type, "dec") == 0 ||
-        strcmp(node_type, "hex") == 0 ||
-        strcmp(node_type, "bits") == 0 ||
-        strcmp(node_type, "char") == 0) {
+    if (strcmp(literal_type, "dec") == 0 ||
+        strcmp(literal_type, "hex") == 0 ||
+        strcmp(literal_type, "bits") == 0 ||
+        strcmp(literal_type, "char") == 0) {
 
         // Преобразуем в число
         int64_t value = 0;
-        if (strcmp(node_type, "dec") == 0) {
+        if (strcmp(literal_type, "dec") == 0) {
             value = strtoll(literal_text, NULL, 10);
         }
-        else if (strcmp(node_type, "hex") == 0) {
+        else if (strcmp(literal_type, "hex") == 0) {
             // Убираем 0x/0X
             const char* num_start = literal_text;
             if (strncmp(literal_text, "0x", 2) == 0 || strncmp(literal_text, "0X", 2) == 0) {
@@ -471,7 +486,7 @@ Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) 
             }
             value = strtoll(num_start, NULL, 16);
         }
-        else if (strcmp(node_type, "bits") == 0) {
+        else if (strcmp(literal_type, "bits") == 0) {
             // Убираем 0b/0B
             const char* num_start = literal_text;
             if (strncmp(literal_text, "0b", 2) == 0 || strncmp(literal_text, "0B", 2) == 0) {
@@ -479,7 +494,7 @@ Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) 
             }
             value = strtoll(num_start, NULL, 2);
         }
-        else if (strcmp(node_type, "char") == 0) {
+        else if (strcmp(literal_type, "char") == 0) {
             // 'c' → извлекаем символ между кавычками
             if (strlen(literal_text) >= 3) {
                 value = (unsigned char)literal_text[1];
@@ -498,7 +513,7 @@ Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) 
     }
 
     // === Булевы литералы ===
-    else if (strcmp(node_type, "bool") == 0) {
+    else if (strcmp(literal_type, "bool") == 0) {
         bool value = (strcmp(literal_text, "true") == 0);
         generate_temp_name(ctx, result_var, 64);
         IRInstruction assign = {0};
@@ -510,7 +525,7 @@ Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) 
     }
 
     // === Строковые литералы ===
-    else if (strcmp(node_type, "str") == 0) {
+    else if (strcmp(literal_type, "str") == 0) {
         // Удаляем внешние кавычки и обрабатываем экранирование (упрощённо)
         char* unquoted = malloc(strlen(literal_text) + 1);
         if (unquoted) {
@@ -551,6 +566,14 @@ Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) 
 Type* visit_expr(CFGBuilderContext* ctx, const TSNode node, char* result_var) {
     const char* node_type = ts_node_type(node);
 
+    if (strcmp(node_type, "expr") == 0) {
+
+        //У expr есть дочерний элемент, который и является выражением, которое мы должны разобрать
+        const TSNode first_children = ts_node_child(node, 0);
+
+        return visit_expr(ctx, first_children, result_var);
+    }
+
     // Бинарные операции: a + b, x && y, x = 5 и т.д.
     if (strcmp(node_type, "binary_expr") == 0) {
         return visit_binary_expr(ctx, node, result_var);
@@ -575,10 +598,12 @@ Type* visit_expr(CFGBuilderContext* ctx, const TSNode node, char* result_var) {
     else if (strcmp(node_type, "identifier") == 0) {
         return visit_identifier_expr(ctx, node, result_var);
     }
+
     // Литералы: 42, "hello", true, 0xFF
-    else {
-        // Все остальные узлы — литералы
-        return visit_literal_expr(ctx, node, result_var);
+    else if (strcmp(node_type, "literal") == 0) {
+        return  visit_literal_expr(ctx, node, result_var);
+    } else{
+        fprintf(stderr, "Unidentifiable expression");
     }
 }
 
