@@ -3,6 +3,7 @@
 
 #include "../semantics-analysis/functions.h"
 #include "types.h"
+#include "../../../lib/tree-sitter/lib/include/tree_sitter/api.h"
 
 CFG* cfg_build_from_ast(FunctionInfo* func_info, const char* source_code, TSNode root_node);
 

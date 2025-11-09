@@ -1,6 +1,8 @@
 #ifndef CFG_EXPRESSION_H
 #define CFG_EXPRESSION_H
 
+#include "../../../lib/tree-sitter/lib/include/tree_sitter/api.h"
+
 #include "types.h"
 // Обработка выражений
 Type* visit_expr(CFGBuilderContext* ctx, TSNode node, char* result_var);

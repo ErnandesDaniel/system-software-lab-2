@@ -3,6 +3,7 @@
 #define CFG_LOOP_CONTEXT_H
 
 #include "types.h"
+#include "../../../lib/tree-sitter/lib/include/tree_sitter/api.h"
 
 void push_loop_exit(CFGBuilderContext* ctx, const char* exit_id);
 void pop_loop_exit(CFGBuilderContext* ctx);

@@ -3,9 +3,13 @@
 
 //=================================== Типы и память=========================================
 
+#include "types.h"
 #include "compiler-utils/semantics-analysis/types.h"
+#include "../../../lib/tree-sitter/lib/include/tree_sitter/api.h"
 
 #include <string.h>
+
+#include "compiler-utils/ast/ast.h"
 // Вспомогательная функция для преобразования имени типа в TypeKind
 static TypeKind builtin_name_to_kind(const char* name) {
 

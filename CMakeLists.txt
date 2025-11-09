@@ -11,8 +11,10 @@ add_executable(system_software_lab_2
         utils/mermaid-utils/mermaid-utils.c
 
         utils/compiler-utils/ast/ast.c
+        utils/compiler-utils/cfg/block_manage.c
         utils/compiler-utils/cfg/cfg.c
         utils/compiler-utils/cfg/expressions.c
+        utils/compiler-utils/cfg/loop_context.c
         utils/compiler-utils/cfg/mermaid.c
         utils/compiler-utils/cfg/statements.c
         utils/compiler-utils/cfg/types.c

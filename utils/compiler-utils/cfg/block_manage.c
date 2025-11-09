@@ -2,6 +2,10 @@
 
 //======================Управление потоком (блоками и переходами)===========================
 
+#include <stdio.h>
+
+#include "types.h"
+#include "block_manage.h"
 // Создание и возврат ссылки на новый блок
 BasicBlock* create_new_block(CFGBuilderContext* ctx) {
 

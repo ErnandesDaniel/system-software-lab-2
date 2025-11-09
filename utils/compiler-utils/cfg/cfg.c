@@ -2,22 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 #include "../lib/tree-sitter/lib/include/tree_sitter/api.h"
 #include "../src/tree_sitter/parser.h"
 
 #include "cfg.h"
+#include "block_manage.h"
+#include "statements.h"
 
 TSLanguage *tree_sitter_mylang(); // Объявляем функцию из parser.c
-
-
-
-
-
-
-
-
-
 
 // Обрабатывает тело функции (все statement'ы внутри source_item)
 void visit_source_item(CFGBuilderContext* ctx, const TSNode node) {
@@ -42,10 +34,6 @@ void visit_source_item(CFGBuilderContext* ctx, const TSNode node) {
 
         // Обрабатываем statement
         visit_statement(ctx, stmt);
-
-
-
-
     }
 }
 

@@ -1,4 +1,9 @@
 
+
+#include "types.h"
+#include "loop_context.h"
+#include "../../../lib/tree-sitter/lib/include/tree_sitter/api.h"
+
 // =================================Контекст циклов (для break)========
 
 // При входе в цикл.

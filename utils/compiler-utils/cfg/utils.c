@@ -1,4 +1,11 @@
 
+#include <stdio.h>
+#include "types.h"
+#include "utils.h"
+
+#include "expressions.h"
+#include "../../../lib/tree-sitter/lib/include/tree_sitter/api.h"
+
 // Генерация имени переменной вида "t42"
 void generate_temp_name(CFGBuilderContext* ctx, char* buffer, const size_t buffer_size) {
 

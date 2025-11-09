@@ -1,79 +1,9 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-// Генерирует Mermaid-диаграмму для CFG
-char* cfg_generate_mermaid(const CFG* cfg) {
-    if (!cfg) return strdup("graph TD\n    error[Invalid CFG]");
 
-    // Грубая оценка размера
-    size_t buf_size = 8192;
-    char* buf = malloc(buf_size);
-    if (!buf) return NULL;
-
-    char* ptr = buf;
-    size_t remaining = buf_size;
-    int total_written = 0;
-
-    // Заголовок
-    total_written = snprintf(ptr, remaining, "graph TD\n");
-    if (total_written < 0 || (size_t)total_written >= remaining) goto overflow;
-    ptr += total_written;
-    remaining -= total_written;
-
-    // Генерация узлов с инструкциями
-    for (size_t i = 0; i < cfg->num_blocks; i++) {
-        const BasicBlock* block = &cfg->blocks[i];
-        char block_label[4096] = {0};
-        char* label_ptr = block_label;
-        size_t label_remaining = sizeof(block_label);
-
-        // Заголовок блока
-        int w = snprintf(label_ptr, label_remaining, "%s\\n", block->id);
-        if (w < 0 || (size_t)w >= label_remaining) goto overflow;
-        label_ptr += w;
-        label_remaining -= w;
-
-        // Инструкции
-        for (size_t j = 0; j < block->num_instructions; j++) {
-            char instr_str[256] = {0};
-            format_ir_instruction(&block->instructions[j], instr_str, sizeof(instr_str));
-            w = snprintf(label_ptr, label_remaining, "%s\\n", instr_str);
-            if (w < 0 || (size_t)w >= label_remaining) break;
-            label_ptr += w;
-            label_remaining -= w;
-        }
-
-        // Формируем узел Mermaid
-        w = snprintf(ptr, remaining, "    %s[\"%s\"]\n", block->id, block_label);
-        if (w < 0 || (size_t)w >= remaining) goto overflow;
-        ptr += w;
-        remaining -= w;
-    }
-
-    // Рёбра (переходы)
-    for (size_t i = 0; i < cfg->num_blocks; i++) {
-        const BasicBlock* block = &cfg->blocks[i];
-        for (size_t j = 0; j < block->num_successors; j++) {
-            int w = snprintf(ptr, remaining, "    %s --> %s\n",
-                            block->id, block->successors[j]);
-            if (w < 0 || (size_t)w >= remaining) goto overflow;
-            ptr += w;
-            remaining -= w;
-        }
-    }
-
-    return buf;
-
-overflow:
-    free(buf);
-    return strdup("graph TD\n    error[CFG too large to display]");
-}
-
-
-
-
-
-
-
+#include "types.h"
+#include "mermaid.h"
 
 // Преобразует IRInstruction в строку для отображения
 void format_ir_instruction(const IRInstruction* inst, char* buffer, size_t size) {
@@ -155,7 +85,70 @@ void format_ir_instruction(const IRInstruction* inst, char* buffer, size_t size)
 }
 
 
+// Генерирует Mermaid-диаграмму для CFG
+char* cfg_generate_mermaid(const CFG* cfg) {
+    if (!cfg) return strdup("graph TD\n    error[Invalid CFG]");
 
+    // Грубая оценка размера
+    size_t buf_size = 8192;
+    char* buf = malloc(buf_size);
+    if (!buf) return NULL;
 
+    char* ptr = buf;
+    size_t remaining = buf_size;
+    int total_written = 0;
 
+    // Заголовок
+    total_written = snprintf(ptr, remaining, "graph TD\n");
+    if (total_written < 0 || (size_t)total_written >= remaining) goto overflow;
+    ptr += total_written;
+    remaining -= total_written;
 
+    // Генерация узлов с инструкциями
+    for (size_t i = 0; i < cfg->num_blocks; i++) {
+        const BasicBlock* block = &cfg->blocks[i];
+        char block_label[4096] = {0};
+        char* label_ptr = block_label;
+        size_t label_remaining = sizeof(block_label);
+
+        // Заголовок блока
+        int w = snprintf(label_ptr, label_remaining, "%s\\n", block->id);
+        if (w < 0 || (size_t)w >= label_remaining) goto overflow;
+        label_ptr += w;
+        label_remaining -= w;
+
+        // Инструкции
+        for (size_t j = 0; j < block->num_instructions; j++) {
+            char instr_str[256] = {0};
+            format_ir_instruction(&block->instructions[j], instr_str, sizeof(instr_str));
+            w = snprintf(label_ptr, label_remaining, "%s\\n", instr_str);
+            if (w < 0 || (size_t)w >= label_remaining) break;
+            label_ptr += w;
+            label_remaining -= w;
+        }
+
+        // Формируем узел Mermaid
+        w = snprintf(ptr, remaining, "    %s[\"%s\"]\n", block->id, block_label);
+        if (w < 0 || (size_t)w >= remaining) goto overflow;
+        ptr += w;
+        remaining -= w;
+    }
+
+    // Рёбра (переходы)
+    for (size_t i = 0; i < cfg->num_blocks; i++) {
+        const BasicBlock* block = &cfg->blocks[i];
+        for (size_t j = 0; j < block->num_successors; j++) {
+            int w = snprintf(ptr, remaining, "    %s --> %s\n",
+                            block->id, block->successors[j]);
+            if (w < 0 || (size_t)w >= remaining) goto overflow;
+            ptr += w;
+            remaining -= w;
+        }
+    }
+
+    return buf;
+
+overflow:
+    free(buf);
+    return strdup("graph TD\n    error[CFG too large to display]");
+}

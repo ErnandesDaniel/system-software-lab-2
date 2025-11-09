@@ -1,10 +1,15 @@
+#include "block_manage.h"
+#include "types.h"
+#include "statements.h"
 
+#include <stdio.h>
+#include <string.h>
 
-
-
-
-
-
+#include "expressions.h"
+#include "loop_context.h"
+#include "utils.h"
+#include "../../../lib/tree-sitter/lib/include/tree_sitter/api.h"
+#include "compiler-utils/ast/ast.h"
 
 //============================Обработка операторов (statements)==========================
 
@@ -163,7 +168,7 @@ void visit_repeat_statement(CFGBuilderContext* ctx, TSNode node) {
 }
 
 // Генерирует IR_JUMP к текущему loop_exit (требует стека циклов).
-void visit_break_statement(const CFGBuilderContext* ctx, TSNode node) {
+void visit_break_statement(CFGBuilderContext* ctx, TSNode node) {
     // break_statement: 'break' ';'
 
     // 1. Проверяем, находимся ли мы внутри цикла

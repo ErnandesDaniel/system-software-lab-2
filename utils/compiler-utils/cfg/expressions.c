@@ -1,4 +1,17 @@
 
+
+
+#include "types.h"
+#include "expressions.h"
+
+#include <stdio.h>
+#include <string.h>
+
+#include "block_manage.h"
+#include "utils.h"
+#include "../../../lib/tree-sitter/lib/include/tree_sitter/api.h"
+#include "compiler-utils/ast/ast.h"
+
 //=====================Вспомогательные функции для выражений============================
 
 
@@ -66,9 +79,7 @@ Type* visit_binary_expr(CFGBuilderContext* ctx, TSNode node, char* result_var){
 
         // Левый операнд должен быть идентификатором
         if (strcmp(ts_node_type(left), "identifier") != 0) {
-            fprintf(stderr, "Ошибка: левый операнд присваивания должен быть идентификатором.\n");
-            // Заглушка: возвращаем int
-            return make_int_type();
+            fprintf(stderr, "Error: left operand of assignment must be an identifier.\n");
         }
 
         char var_name[64];
@@ -531,7 +542,7 @@ Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) 
 
     // === Неизвестный литерал - ошибка===
     else {
-        fprintf(stderr, "Критическая ошибка: неизвестный литерал '%s' (тип: %s).\n");
+        fprintf(stderr, "Critical error: unknown literal '%s' (type: %s).\n");
         exit(1);
     }
 }
