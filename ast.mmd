@@ -28,71 +28,35 @@ N13["="]
 N10 --> N13
 N14["expr"]
 N10 --> N14
-N15["literal"]
+N15["binary_expr"]
 N14 --> N15
-N16["dec: 7"]
+N16["expr"]
 N15 --> N16
-N17[";"]
-N8 --> N17
-N18["end"]
-N1 --> N18
-N19["source_item"]
-N0 --> N19
-N20["def"]
-N19 --> N20
-N21["func_signature"]
-N19 --> N21
-N22["identifier: test_binary_number_expression"]
+N17["literal"]
+N16 --> N17
+N18["dec: 7"]
+N17 --> N18
+N19["+"]
+N15 --> N19
+N20["expr"]
+N15 --> N20
+N21["binary_expr"]
+N20 --> N21
+N22["expr"]
 N21 --> N22
-N23["("]
-N21 --> N23
-N24[")"]
-N21 --> N24
-N25["statement"]
-N19 --> N25
-N26["expression_statement"]
-N25 --> N26
-N27["expr"]
+N23["literal"]
+N22 --> N23
+N24["dec: 5"]
+N23 --> N24
+N25["*"]
+N21 --> N25
+N26["expr"]
+N21 --> N26
+N27["literal"]
 N26 --> N27
-N28["binary_expr"]
+N28["dec: 10"]
 N27 --> N28
-N29["expr"]
-N28 --> N29
-N30["identifier: a"]
-N29 --> N30
-N31["="]
-N28 --> N31
-N32["expr"]
-N28 --> N32
-N33["binary_expr"]
-N32 --> N33
-N34["expr"]
-N33 --> N34
-N35["literal"]
-N34 --> N35
-N36["dec: 7"]
-N35 --> N36
-N37["+"]
-N33 --> N37
-N38["expr"]
-N33 --> N38
-N39["binary_expr"]
-N38 --> N39
-N40["expr"]
-N39 --> N40
-N41["literal"]
-N40 --> N41
-N42["dec: 10"]
-N41 --> N42
-N43["*"]
-N39 --> N43
-N44["expr"]
-N39 --> N44
-N45["literal"]
-N44 --> N45
-N46["dec: 5"]
-N45 --> N46
-N47[";"]
-N26 --> N47
-N48["end"]
-N19 --> N48
+N29[";"]
+N8 --> N29
+N30["end"]
+N1 --> N30

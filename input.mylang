@@ -1,13 +1,5 @@
 def test_assignment ()
 
-a=7;
-
-end
-
-
-
-def test_binary_number_expression ()
-
-a=7+10*5;
+a=7+5*10;
 
 end
