@@ -17,8 +17,15 @@ void visit_if_statement(CFGBuilderContext* ctx, TSNode node) {
     // Структура: if <expr> then <stmt> [else <stmt>] end
 
     // 1. Обрабатываем условие
+    TSNode condition_node = ts_node_child_by_field_name(node, "condition", 9);
     char cond_var[64];
-    Type* cond_type = ensure_bool_expr(ctx, ts_node_child_by_field_name(node, "condition", 9), cond_var);
+    Type* cond_type = eval_to_temp(ctx, condition_node, cond_var);
+    // Проверяем, что условие типа bool
+    if (cond_type->kind != TYPE_BOOL) {
+        fprintf(stderr, "Ошибка: условие в if должно быть типа bool.\n");
+        // Можно продолжить с заглушкой или остановиться
+    }
+
     // 2. Создаём блоки
     BasicBlock* then_block = create_new_block(ctx);
     BasicBlock* else_block = create_new_block(ctx);
@@ -65,8 +72,14 @@ void visit_loop_statement(CFGBuilderContext* ctx, TSNode node) {
     bool is_until = (strcmp(keyword, "until") == 0);
 
     // 2. Обрабатываем условие
+    TSNode condition_node = ts_node_child_by_field_name(node, "condition", 9);
     char cond_var[64];
-    Type* cond_type = ensure_bool_expr(ctx, ts_node_child_by_field_name(node, "condition", 9), cond_var);
+    Type* cond_type = eval_to_temp(ctx, condition_node, cond_var);
+    // Проверяем, что условие типа bool
+    if (cond_type->kind != TYPE_BOOL) {
+        fprintf(stderr, "Ошибка: условие в цикле должно быть типа bool.\n");
+        // Можно продолжить с заглушкой или остановиться
+    }
     // 3. Создаём блоки
     BasicBlock* header_block = create_new_block(ctx);  // проверка условия
     BasicBlock* body_block = create_new_block(ctx);    // тело цикла
@@ -154,7 +167,12 @@ void visit_repeat_statement(CFGBuilderContext* ctx, TSNode node) {
     // 8. Header: вычисляем условие
     ctx->current_block = header_block;
     char cond_var[64];
-    Type* cond_type = ensure_bool_expr(ctx, cond_expr, cond_var);
+    Type* cond_type = eval_to_temp(ctx, cond_expr, cond_var);
+    // Проверяем, что условие типа bool
+    if (cond_type->kind != TYPE_BOOL) {
+        fprintf(stderr, "Ошибка: условие в repeat-цикле должно быть типа bool.\n");
+        // Можно продолжить с заглушкой или остановиться
+    }
     Operand cond_op = make_var_operand(cond_var, cond_type);
     if (is_until) {
         // repeat ... until cond; → выход при true
