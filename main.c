@@ -15,7 +15,7 @@
 
 #include "utils/compiler-utils/semantics-analysis/functions.h"
 
-#include "compiler-utils/semantics-analysis/semantics-analysis.h"
+#include "utils/compiler-utils/semantics-analysis/semantics-analysis.h"
 
 
 // Подключаем твою грамматику
