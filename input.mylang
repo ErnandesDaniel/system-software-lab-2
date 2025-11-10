@@ -1,14 +1,13 @@
-
-def test_if ()
+def test_assignment ()
 
 a=7;
 
-if a>5 then{
+end
 
-i=1;
 
-}
 
-i=10;
+def test_binary_number_expression ()
+
+a=7+10*5;
 
 end
