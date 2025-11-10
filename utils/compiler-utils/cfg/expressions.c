@@ -502,7 +502,6 @@ Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) 
         }
 
         // Генерируем временную переменную и IR_ASSIGN с константой
-        generate_temp_name(ctx, result_var, 64);
         IRInstruction assign = {0};
         assign.opcode = IR_ASSIGN;
         strcpy(assign.data.assign.target, result_var);
@@ -515,7 +514,6 @@ Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) 
     // === Булевы литералы ===
     else if (strcmp(literal_type, "bool") == 0) {
         bool value = (strcmp(literal_text, "true") == 0);
-        generate_temp_name(ctx, result_var, 64);
         IRInstruction assign = {0};
         assign.opcode = IR_ASSIGN;
         strcpy(assign.data.assign.target, result_var);
@@ -544,7 +542,6 @@ Type* visit_literal_expr(CFGBuilderContext* ctx, TSNode node, char* result_var) 
             unquoted = strdup("");
         }
 
-        generate_temp_name(ctx, result_var, 64);
         IRInstruction assign = {0};
         assign.opcode = IR_ASSIGN;
         strcpy(assign.data.assign.target, result_var);
