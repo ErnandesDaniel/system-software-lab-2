@@ -6,7 +6,7 @@ N2["def"]
 N1 --> N2
 N3["func_signature"]
 N1 --> N3
-N4["identifier: test_expression"]
+N4["identifier: test_if"]
 N3 --> N4
 N5["("]
 N3 --> N5
@@ -30,7 +30,7 @@ N14["expr"]
 N10 --> N14
 N15["literal"]
 N14 --> N15
-N16["dec: 1"]
+N16["dec: 7"]
 N15 --> N16
 N17[";"]
 N8 --> N17
@@ -60,25 +60,55 @@ N29["then"]
 N19 --> N29
 N30["statement"]
 N19 --> N30
-N31["expression_statement"]
+N31["block_statement"]
 N30 --> N31
-N32["expr"]
+N32["{"]
 N31 --> N32
-N33["binary_expr"]
-N32 --> N33
-N34["expr"]
+N33["statement"]
+N31 --> N33
+N34["expression_statement"]
 N33 --> N34
-N35["identifier: i"]
+N35["expr"]
 N34 --> N35
-N36["="]
-N33 --> N36
+N36["binary_expr"]
+N35 --> N36
 N37["expr"]
-N33 --> N37
-N38["literal"]
+N36 --> N37
+N38["identifier: i"]
 N37 --> N38
-N39["dec: 1"]
-N38 --> N39
-N40[";"]
-N31 --> N40
-N41["end"]
-N1 --> N41
+N39["="]
+N36 --> N39
+N40["expr"]
+N36 --> N40
+N41["literal"]
+N40 --> N41
+N42["dec: 1"]
+N41 --> N42
+N43[";"]
+N34 --> N43
+N44["}"]
+N31 --> N44
+N45["statement"]
+N1 --> N45
+N46["expression_statement"]
+N45 --> N46
+N47["expr"]
+N46 --> N47
+N48["binary_expr"]
+N47 --> N48
+N49["expr"]
+N48 --> N49
+N50["identifier: i"]
+N49 --> N50
+N51["="]
+N48 --> N51
+N52["expr"]
+N48 --> N52
+N53["literal"]
+N52 --> N53
+N54["dec: 10"]
+N53 --> N54
+N55[";"]
+N46 --> N55
+N56["end"]
+N1 --> N56
