@@ -1,11 +1,13 @@
 
-def main ()
+def test_loop_while ()
 
-while i<5
+i=1;
+
+while i<5 {
 
 i=i+1;
 
-end
+}
 
 
 end

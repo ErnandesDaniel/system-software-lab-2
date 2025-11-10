@@ -1,8 +1,14 @@
 
-def main ()
+def test_if ()
 
-if a>5 then
+a=7;
+
+if a>5 then{
 
 i=1;
+
+}
+
+i=10;
 
 end
