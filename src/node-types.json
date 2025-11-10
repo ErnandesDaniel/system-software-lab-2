@@ -500,6 +500,16 @@
             "named": false
           }
         ]
+      },
+      "pre-body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "do",
+            "named": false
+          }
+        ]
       }
     }
   },
@@ -809,11 +819,11 @@
   },
   {
     "type": "char",
-    "named": true
+    "named": false
   },
   {
     "type": "char",
-    "named": false
+    "named": true
   },
   {
     "type": "dec",
@@ -821,6 +831,10 @@
   },
   {
     "type": "def",
+    "named": false
+  },
+  {
+    "type": "do",
     "named": false
   },
   {
