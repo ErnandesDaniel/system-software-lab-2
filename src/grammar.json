@@ -485,7 +485,7 @@
         },
         {
           "type": "STRING",
-          "value": "end"
+          "value": "loop_end"
         }
       ]
     },
@@ -497,7 +497,7 @@
         "members": [
           {
             "type": "FIELD",
-            "name": "pre-body",
+            "name": "loop_prefix_body",
             "content": {
               "type": "STRING",
               "value": "do"

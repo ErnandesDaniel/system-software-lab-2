@@ -207,12 +207,12 @@ module.exports = grammar({
             field('keyword', choice('while', 'until')),
             field('condition', $.expr),
             field('body', repeat($.statement)),
-            'end'
+            'loop_end'
         ),
 
         // repeat: statement ('while'|'until') expr ';';
         repeat_statement: $ => prec(1,seq(
-            field('pre-body', 'do'),
+            field('loop_prefix_body', 'do'),
             field('body', $.statement),
             field('keyword', choice('while', 'until')),
             field('condition', $.expr),
